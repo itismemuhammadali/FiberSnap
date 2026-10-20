@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Avatars: readable by anyone, writable if authenticated or matching user
+    match /avatars/{userId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Meal photos: readable and writable with 15MB limit to allow robust cross-device sync
+    match /meal_photos/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 15 * 1024 * 1024;
+    }
+
+    // Default authenticated access
+    match /{allPaths=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

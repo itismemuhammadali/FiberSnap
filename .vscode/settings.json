@@ -1,0 +1,26 @@
+{
+  "java.project.exclusionFilters": [
+    "**/node_modules/**",
+    "node_modules/**",
+    "**/android/**",
+    "android/**",
+    "**/ios/**",
+    "ios/**"
+  ],
+  "java.project.importOnFirstTimeStartup": "disabled",
+  "java.import.gradle.enabled": false,
+  "java.import.maven.enabled": false,
+  "java.autobuild.enabled": false,
+  "java.errors.incompleteClasspath.severity": "ignore",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true
+  },
+  "search.exclude": {
+    "**/node_modules": true
+  },
+  "java.configuration.updateBuildConfiguration": "interactive"
+}

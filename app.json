@@ -1,17 +1,35 @@
 {
   "expo": {
-    "name": "temp-expo-init",
-    "slug": "temp-expo-init",
+    "name": "FiberSnap App",
+    "slug": "fibersnap",
+    "scheme": "fibersnap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#FAF9F4",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.duomatic.fibersnap",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "FiberSnap uses your camera to scan and analyze dietary fiber in meals and capture profile photos.",
+        "NSPhotoLibraryUsageDescription": "FiberSnap accesses your photo library to select meal photos for nutritional analysis and customize your profile avatar.",
+        "NSPhotoLibraryAddUsageDescription": "FiberSnap saves your analyzed meal photos to your photo library upon your request."
+      }
     },
     "android": {
+      "package": "com.duomatic.fibersnap",
+      "versionCode": 3,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
+      ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FAF9F4",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +38,32 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sharing",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow FiberSnap to access your photos to select meal photos and set your profile picture.",
+          "cameraPermission": "Allow FiberSnap to use your camera to scan meal photos for dietary fiber analysis and take profile pictures."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF9F4"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ec51abea-3e23-414b-98c5-0c54368f8b17"
+      }
+    },
+    "owner": "muhammadali222"
   }
 }

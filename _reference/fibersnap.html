@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FiberSnap — daily fiber tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60'%3E%3Cpath d='M8,30 C8,14 28,5 60,5 C92,5 112,14 112,30 C112,46 92,55 60,55 C28,55 8,46 8,30 Z' fill='%23E4EAD8' stroke='%2357693F' stroke-width='6'/%3E%3Ccircle cx='37' cy='30' r='9.5' fill='%2374895A'/%3E%3Ccircle cx='60' cy='30' r='9.5' fill='%2374895A'/%3E%3Ccircle cx='83' cy='30' r='9.5' fill='%2374895A'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#F9F6F1;
+    --page-bg:#EEE9DC;
+    --surface:#FFFFFF;
+    --surface-2:#F1ECE0;
+    --border:#E6DFCF;
+    --ink:#2B2A1E;
+    --ink-soft:#6B6A57;
+    --ink-faint:#9B9A86;
+    --accent:#74895A;
+    --accent-deep:#57693F;
+    --accent-soft:#E4EAD8;
+    --accent-ink:#FFFFFF;
+    --soluble:#74895A;
+    --insoluble:#5C7C99;
+    --danger:#B5533E;
+    --danger-soft:#F3E1DA;
+    --shadow:0 1px 2px rgba(43,42,30,.05), 0 12px 28px -16px rgba(43,42,30,.24);
+    --radius-card:20px;
+    --radius-pill:999px;
+    --font-serif:Georgia,'Times New Roman',Times,serif;
+    --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#1E1E16;
+      --page-bg:#151510;
+      --surface:#26261E;
+      --surface-2:#2D2D23;
+      --border:#3A3A2C;
+      --ink:#EFEDE0;
+      --ink-soft:#A9A88F;
+      --ink-faint:#75745E;
+      --accent:#93AC72;
+      --accent-deep:#A9C088;
+      --accent-soft:#333F29;
+      --accent-ink:#16160F;
+      --soluble:#93AC72;
+      --insoluble:#7FA3C2;
+      --danger:#D98A73;
+      --danger-soft:#3A2620;
+      --shadow:0 1px 0 rgba(0,0,0,.4), 0 16px 34px -18px rgba(0,0,0,.75);
+    }
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--page-bg);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  button,input,select{font:inherit;color:inherit;}
+  button{cursor:pointer;}
+  [hidden]{display:none!important;}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .app{
+    max-width:460px;
+    margin:0 auto;
+    background:var(--bg);
+    min-height:100vh;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+  @media (min-width:560px){
+    body{padding:32px 16px;}
+    .app{min-height:auto;border-radius:28px;overflow:hidden;box-shadow:var(--shadow);}
+  }
+
+  .topbar{
+    position:sticky;top:0;z-index:10;
+    background:var(--accent);color:var(--accent-ink);
+    border-bottom:1px solid var(--accent-deep);
+    padding:calc(16px + env(safe-area-inset-top,0px)) 20px 14px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .brand{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .brand-mark{width:32px;height:16px;flex:none;color:var(--accent-ink);}
+  .brand-word{font-family:var(--font-serif);font-weight:700;font-size:21px;letter-spacing:-.01em;}
+  .brand-tag{font-family:var(--font-serif);font-style:italic;font-size:12px;color:var(--accent-ink);opacity:.8;flex-basis:100%;margin-left:41px;}
+  .goal-badge{
+    background:color-mix(in srgb, var(--accent-ink) 18%, transparent);
+    border:1px solid color-mix(in srgb, var(--accent-ink) 32%, transparent);
+    border-radius:14px;
+    padding:6px 13px;text-align:center;flex:none;
+  }
+  .goal-badge-label{display:block;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb, var(--accent-ink) 75%, transparent);}
+  .goal-badge-num{display:block;font-family:var(--font-serif);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;color:var(--accent-ink);}
+
+  main.content{flex:1;padding:18px 20px 8px;}
+  section{margin-bottom:4px;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);
+    padding:20px;box-shadow:var(--shadow);margin-bottom:16px;
+  }
+  .section-title{font-family:var(--font-serif);font-weight:600;font-size:16px;margin:0 0 10px;}
+  .hint{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin:8px 0 14px;}
+  .hint:last-child{margin-bottom:0;}
+
+  .headline{font-family:var(--font-serif);font-weight:600;font-size:21px;margin:0;text-wrap:balance;}
+  .subtext{font-family:var(--font-serif);font-style:italic;color:var(--accent-deep);font-size:13.5px;margin:5px 0 0;}
+  .ring-row{display:flex;gap:22px;align-items:center;margin-top:20px;flex-wrap:wrap;}
+  .ring-wrap{position:relative;width:132px;height:132px;flex:none;}
+  .ring-svg{width:100%;height:100%;}
+  .ring-track{fill:none;stroke:var(--surface-2);stroke-width:10;}
+  .ring-progress{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;}
+  @media (prefers-reduced-motion:no-preference){
+    .ring-progress{transition:stroke-dashoffset .6s ease;}
+  }
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 8px;}
+  .ring-num{font-family:var(--font-serif);font-weight:700;font-size:32px;line-height:1;font-variant-numeric:tabular-nums;}
+  .ring-label{font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-top:5px;}
+  .ring-pct{font-size:12px;font-weight:600;color:var(--accent-deep);margin-top:2px;font-variant-numeric:tabular-nums;}
+  .ring-stats{flex:1;min-width:130px;}
+  .stat-big{font-family:var(--font-serif);font-weight:700;font-size:28px;font-variant-numeric:tabular-nums;}
+  .stat-label{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-top:2px;}
+  .stat-remaining{margin-top:12px;font-weight:600;font-size:14px;color:var(--accent-deep);}
+  .stat-goal{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+  .btn-row{display:flex;gap:10px;margin-bottom:16px;}
+  .btn{
+    font-weight:600;font-size:13.5px;border-radius:var(--radius-pill);padding:12px 16px;
+    border:1px solid transparent;flex:1;text-align:center;background:none;
+  }
+  @media (prefers-reduced-motion:no-preference){.btn{transition:background .15s ease,border-color .15s ease,opacity .15s ease;}}
+  .btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .btn-primary:hover{background:var(--accent-deep);border-color:var(--accent-deep);}
+  .btn-outline{background:transparent;color:var(--ink);border-color:var(--border);}
+  .btn-outline:hover{border-color:var(--accent);}
+  .btn-danger{background:transparent;color:var(--danger);border-color:var(--danger-soft);}
+  .btn-danger:hover{background:var(--danger-soft);}
+  .btn-sm{padding:8px 14px;font-size:12.5px;flex:none;}
+
+  .custom-form{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .custom-form input{
+    flex:1;min-width:100px;background:var(--surface-2);border:1px solid var(--border);
+    border-radius:12px;padding:10px 12px;font-size:13.5px;
+  }
+  .search-wrap{position:relative;margin-bottom:6px;}
+  .search-wrap input{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-pill);
+    padding:11px 14px 11px 40px;font-size:14px;
+  }
+  .search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-faint);pointer-events:none;}
+
+  .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border);}
+  .row:first-child{border-top:none;}
+  .row-avatar{width:38px;height:38px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+  .row-main{flex:1;min-width:0;}
+  .row-name{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row-sub{font-family:var(--font-serif);font-style:italic;font-size:12px;color:var(--ink-soft);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row-side{text-align:right;flex:none;}
+  .row-grams{font-weight:700;color:var(--accent-deep);font-size:13.5px;font-variant-numeric:tabular-nums;}
+  .row-time{font-size:10.5px;color:var(--ink-faint);margin-top:1px;}
+  .row-add{
+    width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+    font-size:17px;line-height:1;border:none;flex:none;display:flex;align-items:center;justify-content:center;
+  }
+  .row-add:hover{background:var(--accent-deep);}
+  .row-remove{
+    width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:transparent;
+    color:var(--ink-faint);font-size:14px;line-height:1;flex:none;display:flex;align-items:center;justify-content:center;
+  }
+  .row-remove:hover{color:var(--danger);border-color:var(--danger-soft);}
+
+  .empty-state{text-align:center;color:var(--ink-soft);font-size:13px;padding:26px 10px;line-height:1.6;}
+
+  label.field{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  label.field:first-of-type{margin-top:0;}
+  select.input-el,input.input-el{
+    width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;
+    background:var(--surface-2);font-size:14px;
+  }
+  .recommend-box{margin-top:18px;background:var(--accent-soft);border-radius:16px;padding:16px;text-align:center;}
+  .recommend-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-deep);}
+  .recommend-num{font-family:var(--font-serif);font-weight:700;font-size:30px;color:var(--accent-deep);margin-top:4px;font-variant-numeric:tabular-nums;}
+  .toggle-row{display:flex;align-items:center;gap:9px;margin-top:16px;font-size:13px;cursor:pointer;}
+  .toggle-row input{width:16px;height:16px;accent-color:var(--accent);}
+  .disclaimer{font-size:11px;color:var(--ink-faint);line-height:1.55;margin-top:16px;}
+  .save-row{display:flex;align-items:center;gap:12px;margin-top:18px;}
+  .save-note{font-size:12px;color:var(--accent-deep);font-weight:600;opacity:0;}
+  @media (prefers-reduced-motion:no-preference){.save-note{transition:opacity .2s ease;}}
+  .save-note.show{opacity:1;}
+
+  .source-row{display:flex;align-items:center;gap:10px;padding:8px 0;}
+  .source-name{width:40%;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .source-bar-track{flex:1;height:10px;background:var(--surface-2);border-radius:6px;overflow:hidden;}
+  .source-bar-fill{height:100%;background:var(--accent);border-radius:6px;}
+  .source-grams{width:48px;text-align:right;font-size:12px;font-weight:600;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+
+  .legend{display:flex;gap:16px;font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;}
+  .legend-item{display:flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
+  .dot-soluble{background:var(--soluble);}
+  .dot-insoluble{background:var(--insoluble);}
+  .split-bar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:var(--surface-2);}
+  .split-seg-soluble{background:var(--soluble);}
+  .split-seg-insoluble{background:var(--insoluble);}
+  .split-values{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:8px;font-variant-numeric:tabular-nums;}
+
+  .stat-row{display:flex;gap:12px;margin-bottom:0;}
+  .stat-tile{flex:1;text-align:center;padding:18px 8px;}
+  .stat-tile-num{font-family:var(--font-serif);font-weight:700;font-size:26px;color:var(--accent-deep);font-variant-numeric:tabular-nums;}
+  .stat-tile-label{font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-top:4px;}
+
+  .chart-svg{width:100%;height:auto;display:block;}
+  .chart-axis{font-size:9.5px;fill:var(--ink-faint);font-family:var(--font-sans);}
+  .chart-val{font-size:10px;fill:var(--accent-deep);font-weight:600;font-family:var(--font-sans);}
+  .chart-tooltip{
+    position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;
+    padding:6px 10px;border-radius:8px;transform:translate(-50%,-125%);z-index:30;white-space:nowrap;
+    box-shadow:var(--shadow);opacity:0;
+  }
+  @media (prefers-reduced-motion:no-preference){.chart-tooltip{transition:opacity .1s ease;}}
+  .chart-tooltip.show{opacity:1;}
+
+  .kv-row{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border);font-size:13.5px;}
+  .kv-row:first-child{border-top:none;}
+  .kv-row span:last-child{font-weight:600;}
+
+  .confirm-row{margin-top:12px;background:var(--danger-soft);border-radius:12px;padding:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12.5px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:var(--radius-pill);font-size:13px;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;z-index:40;max-width:80%;text-align:center;
+  }
+  @media (prefers-reduced-motion:no-preference){.toast{transition:opacity .2s ease, transform .2s ease;}}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+  .tabbar{
+    position:sticky;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--border);
+    display:flex;padding:7px 4px calc(7px + env(safe-area-inset-bottom,0px));
+  }
+  .tab-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;
+    color:var(--ink-faint);padding:6px 2px;font-size:10px;font-weight:600;letter-spacing:.01em;
+  }
+  .tab-btn svg{width:21px;height:21px;}
+  .tab-btn.active{color:var(--accent-deep);}
+  .tab-btn.active svg{color:var(--accent);}
+
+  @media (max-width:360px){
+    .ring-row{justify-content:center;}
+    .ring-stats{text-align:center;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 120 60" aria-hidden="true">
+        <path d="M8,30 C8,14 28,5 60,5 C92,5 112,14 112,30 C112,46 92,55 60,55 C28,55 8,46 8,30 Z" fill="none" stroke="currentColor" stroke-width="5"/>
+        <path d="M48.5,15 Q44,30 48.5,45" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+        <path d="M71.5,15 Q76,30 71.5,45" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+        <circle cx="37" cy="30" r="9.5" fill="currentColor"/>
+        <circle cx="60" cy="30" r="9.5" fill="currentColor"/>
+        <circle cx="83" cy="30" r="9.5" fill="currentColor"/>
+      </svg>
+      <span class="brand-word">FiberSnap</span>
+      <span class="brand-tag">Fiber, in a snap.</span>
+    </div>
+    <div class="goal-badge">
+      <span class="goal-badge-label">Daily goal</span>
+      <span class="goal-badge-num" id="topGoal">28g</span>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- TODAY -->
+    <section id="tab-today">
+      <div class="card ring-card">
+        <h2 class="headline" id="headline">28g remaining today</h2>
+        <p class="subtext" id="subtext">Let's get started — log your first food</p>
+        <div class="ring-row">
+          <div class="ring-wrap">
+            <svg class="ring-svg" viewBox="0 0 120 120" id="ringSvg">
+              <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+              <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="52" transform="rotate(-90 60 60)"></circle>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-num" id="ringNum">0</span>
+              <span class="ring-label">of <span id="ringGoal">28</span>g fiber</span>
+              <span class="ring-pct" id="ringPct">0%</span>
+            </div>
+          </div>
+          <div class="ring-stats">
+            <div class="stat-big" id="statEaten">0</div>
+            <div class="stat-label">g fiber eaten</div>
+            <div class="stat-remaining" id="statRemaining">28g to go</div>
+            <div class="stat-goal" id="statGoalLine">Goal: 28g</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnQuickAdd" type="button">+ Log a food</button>
+        <button class="btn btn-outline" id="btnCustom" type="button">+ Custom amount</button>
+      </div>
+
+      <div class="card log-card">
+        <div class="section-title">Today's log</div>
+
+        <form class="custom-form" id="customForm" hidden>
+          <input class="input-el" id="customName" placeholder="Food name" autocomplete="off" />
+          <input class="input-el" id="customGrams" type="number" min="0" step="0.1" placeholder="Fiber (g)" />
+          <button class="btn btn-primary btn-sm" type="submit">Add</button>
+        </form>
+
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.2" y2="16.2"></line></svg>
+          <input class="input-el" id="searchInput" placeholder="Search any food (USDA database)…" autocomplete="off" />
+        </div>
+
+        <div id="logArea"></div>
+      </div>
+    </section>
+
+    <!-- GOAL -->
+    <section id="tab-goal" hidden>
+      <div class="card">
+        <div class="section-title">Set your goal</div>
+        <p class="hint">We'll suggest a daily target using the standard adult adequate-intake guideline for your age and sex. You can also set your own number below.</p>
+
+        <label class="field" for="gSex">Biological sex</label>
+        <select class="input-el" id="gSex">
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="other">Other / prefer not to say</option>
+        </select>
+
+        <label class="field" for="gAge">Age</label>
+        <input class="input-el" id="gAge" type="number" min="1" max="120" placeholder="e.g. 34" />
+
+        <div class="recommend-box">
+          <div class="recommend-label">Recommended daily goal</div>
+          <div class="recommend-num" id="recommendNum">28g</div>
+        </div>
+
+        <label class="toggle-row">
+          <input type="checkbox" id="gCustomToggle" />
+          <span>Use a custom goal instead</span>
+        </label>
+        <label class="field" id="gCustomWrapLabel" for="gCustomGrams" hidden>Custom goal (g)</label>
+        <input class="input-el" id="gCustomGrams" type="number" min="1" max="100" placeholder="e.g. 30" hidden />
+
+        <div class="save-row">
+          <button class="btn btn-primary" id="btnSaveGoal" type="button" style="flex:none;padding:12px 22px;">Save goal</button>
+          <span class="save-note" id="saveNote">Saved</span>
+        </div>
+
+        <p class="disclaimer">General wellness guidance, not medical advice. If you have a digestive condition or are increasing fiber significantly, raise your intake gradually and drink plenty of water — check with a healthcare provider if unsure.</p>
+      </div>
+    </section>
+
+    <!-- SOURCES -->
+    <section id="tab-sources" hidden>
+      <div class="card">
+        <div class="section-title">Today's sources</div>
+        <div id="sourceList"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Soluble vs. insoluble</div>
+        <div class="legend">
+          <span class="legend-item"><i class="dot dot-soluble"></i>Soluble</span>
+          <span class="legend-item"><i class="dot dot-insoluble"></i>Insoluble</span>
+        </div>
+        <div class="split-bar" id="splitBar"></div>
+        <div class="split-values" id="splitValues">
+          <span>0g soluble</span><span>0g insoluble</span>
+        </div>
+        <p class="hint">Most foods contain some of both — this is an estimate based on each food's primary type. Soluble fiber (oats, beans, fruit) helps manage cholesterol and blood sugar; insoluble fiber (whole grains, vegetable skins, nuts) supports regularity.</p>
+      </div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section id="tab-progress" hidden>
+      <div class="stat-row">
+        <div class="card stat-tile"><div class="stat-tile-num" id="streakNum">0</div><div class="stat-tile-label">day streak</div></div>
+        <div class="card stat-tile"><div class="stat-tile-num" id="avgNum">0</div><div class="stat-tile-label">avg g/day · 7d</div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Last 7 days</div>
+        <div id="chartArea"></div>
+      </div>
+    </section>
+
+    <!-- ME -->
+    <section id="tab-me" hidden>
+      <div class="card">
+        <div class="section-title">Your profile</div>
+        <div class="kv-row"><span>Daily goal</span><span id="meGoal">28g</span></div>
+        <div class="kv-row"><span>Days tracked</span><span id="meDays">0</span></div>
+        <div class="kv-row"><span>Foods logged, all time</span><span id="meTotal">0</span></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Backup your data</div>
+        <p class="hint">Your log stays in this browser tab and is never sent anywhere — export a backup before you close this file, and import it next time to pick up where you left off. Food search is the one exception: what you type is sent to USDA's public FoodData Central database to look up nutrition info.</p>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn btn-outline" id="btnExport" type="button">Export backup</button>
+          <button class="btn btn-outline" id="btnImportBtn" type="button">Import backup</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" hidden />
+      </div>
+      <div class="card">
+        <div class="section-title">Reset</div>
+        <p class="hint">Clear everything you've logged. This can't be undone.</p>
+        <button class="btn btn-danger" id="btnReset" type="button" style="flex:none;padding:11px 20px;">Clear all data</button>
+        <div class="confirm-row" id="resetConfirm" hidden>
+          <span>Are you sure? This deletes your whole log.</span>
+          <button class="btn btn-sm btn-danger" id="btnResetYes" type="button">Yes, clear it</button>
+          <button class="btn btn-sm btn-outline" id="btnResetNo" type="button">Cancel</button>
+        </div>
+      </div>
+      <p class="hint" style="text-align:center;padding-bottom:8px;">FiberSnap — a small tool for a simple habit.</p>
+    </section>
+
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button class="tab-btn active" data-tab="today" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"></circle></svg>
+      <span>Today</span>
+    </button>
+    <button class="tab-btn" data-tab="goal" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V3"></path><path d="M5 4h12l-2.6 3.2L17 10.4H5"></path></svg>
+      <span>Goal</span>
+    </button>
+    <button class="tab-btn" data-tab="sources" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c-4.2 1.8-7 5.6-7 9.8a7 7 0 0 0 14 0c0-4.2-2.8-8-7-9.8z"></path><path d="M12 21V10"></path></svg>
+      <span>Sources</span>
+    </button>
+    <button class="tab-btn" data-tab="progress" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="3.4" height="8"></rect><rect x="10.3" y="7" width="3.4" height="13"></rect><rect x="16.6" y="3" width="3.4" height="17"></rect></svg>
+      <span>Progress</span>
+    </button>
+    <button class="tab-btn" data-tab="me" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.3"></circle><path d="M5.3 20c1.2-3.8 4-5.7 6.7-5.7s5.5 1.9 6.7 5.7"></path></svg>
+      <span>Me</span>
+    </button>
+  </nav>
+
+  <div class="chart-tooltip" id="chartTooltip"></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- USDA FoodData Central search ----------
+  // Public DEMO_KEY: 30 requests/hour, 50/day per IP — fine for trying this out, too low for
+  // real users. Get a free personal key (2-minute signup, 1,000 req/hr) at
+  // https://api.data.gov/signup/ and swap it in below.
+  var FDC_API_KEY = 'DEMO_KEY';
+  var FDC_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+  // Restrict to USDA's standardized whole-food datasets (Foundation, SR Legacy, the FNDDS survey
+  // set) rather than Branded — branded search tends to return dozens of near-duplicate packaged
+  // products with thinner nutrient panels, which is a worse fit for a generic-food quick-add list.
+  var FDC_DATA_TYPES = 'Foundation,SR Legacy,Survey (FNDDS)';
+  var FDC_FIBER_NUTRIENT_ID = 1079; // "Fiber, total dietary"
+
+  // FDC doesn't report a soluble/insoluble split or supply an emoji, so both are guessed from the
+  // food's name via keyword matching — a heuristic, not a lab measurement. Order matters: first
+  // match wins, so more specific keywords are listed before general ones.
+  var FIBER_TAG_KEYWORDS = [
+    [/psyllium|chia|flax|oat|prune|banana|orange|citrus|carrot/i, 'soluble'],
+    [/lentil|bean|split pea|chickpea|garbanzo/i, 'soluble'],
+    [/whole wheat|whole grain|bran|quinoa|barley|brown rice|popcorn|almond|walnut|pistachio|peanut|nut\b|seed\b|broccoli|brussels|potato|corn\b|spinach|cauliflower|cabbage|kale|celery/i, 'insoluble'],
+    [/berry|berries|apple|pear|avocado|sweet potato|edamame|green pea|artichoke|fig\b/i, 'mixed']
+  ];
+  function fiberTagFor(desc){
+    for(var i=0;i<FIBER_TAG_KEYWORDS.length;i++){
+      if(FIBER_TAG_KEYWORDS[i][0].test(desc)) return FIBER_TAG_KEYWORDS[i][1];
+    }
+    return 'mixed';
+  }
+  var FOOD_EMOJI_KEYWORDS = [
+    [/lentil|bean|split pea|chickpea|garbanzo|edamame/i, '🫘'],
+    [/green pea/i, '🫛'],
+    [/berry|berries/i, '🫐'],
+    [/apple/i, '🍎'], [/pear\b/i, '🍐'], [/banana/i, '🍌'], [/orange|citrus/i, '🍊'],
+    [/avocado/i, '🥑'], [/fig\b/i, '🌾'],
+    [/oat|granola|cereal/i, '🥣'], [/quinoa|barley|seed\b|flax|chia/i, '🌾'],
+    [/rice/i, '🍚'], [/pasta|noodle/i, '🍝'], [/bread|toast/i, '🍞'], [/tortilla|wrap/i, '🌯'],
+    [/popcorn/i, '🍿'], [/almond|walnut|pistachio|cashew|nut\b/i, '🌰'], [/peanut/i, '🥜'],
+    [/broccoli|cauliflower/i, '🥦'], [/brussels|cabbage/i, '🥬'], [/carrot/i, '🥕'],
+    [/sweet potato|yam/i, '🍠'], [/potato/i, '🥔'], [/corn\b/i, '🌽'], [/spinach|kale|leafy/i, '🍃'],
+    [/artichoke|vegetable/i, '🌿']
+  ];
+  function emojiFor(desc){
+    for(var i=0;i<FOOD_EMOJI_KEYWORDS.length;i++){
+      if(FOOD_EMOJI_KEYWORDS[i][0].test(desc)) return FOOD_EMOJI_KEYWORDS[i][1];
+    }
+    return '🍽️';
+  }
+  function titleCaseIfShouting(s){
+    if(s && s===s.toUpperCase()){
+      return s.replace(/\w\S*/g, function(t){ return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase(); });
+    }
+    return s;
+  }
+  function extractFiberPer100g(food){
+    var hit = (food.foodNutrients||[]).filter(function(n){
+      return n.nutrientId===FDC_FIBER_NUTRIENT_ID || /fiber, total dietary/i.test(n.nutrientName||'');
+    })[0];
+    return hit && isFinite(hit.value) ? Number(hit.value) : null;
+  }
+  function fdcServingInfo(food){
+    if(food.servingSize && /^g$/i.test(food.servingSizeUnit||'')){
+      return {
+        grams: food.servingSize,
+        label: food.householdServingFullText || (fmt(food.servingSize)+'g')
+      };
+    }
+    return {grams:100, label:'100g'};
+  }
+  function mapFdcFood(food){
+    var fiberPer100g = extractFiberPer100g(food);
+    if(fiberPer100g===null) return null;
+    var desc = titleCaseIfShouting(food.description || 'Food');
+    var serving = fdcServingInfo(food);
+    var grams = Math.round((fiberPer100g * serving.grams/100) * 10)/10;
+    if(!(grams>0)) return null;
+    return {
+      id: 'fdc-'+food.fdcId,
+      name: desc,
+      emoji: emojiFor(desc),
+      serving: serving.label + (food.brandOwner ? ' · '+food.brandOwner : ''),
+      grams: grams,
+      tag: fiberTagFor(desc)
+    };
+  }
+
+  var searchResultsCache = [];
+  var searchDebounceTimer = null;
+  var searchAbortController = null;
+
+  function performSearch(rawQuery){
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(function(){ runFdcSearch(rawQuery.trim()); }, 350);
+  }
+
+  function runFdcSearch(q){
+    if(searchAbortController) searchAbortController.abort();
+    searchAbortController = new AbortController();
+    var url = FDC_SEARCH_URL
+      + '?api_key='+encodeURIComponent(FDC_API_KEY)
+      + '&pageSize=12'
+      + '&dataType='+encodeURIComponent(FDC_DATA_TYPES)
+      + '&query='+encodeURIComponent(q);
+    fetch(url, {signal: searchAbortController.signal})
+      .then(function(res){
+        if(res.status===429) throw new Error('RATE_LIMIT');
+        if(!res.ok) throw new Error('HTTP_'+res.status);
+        return res.json();
+      })
+      .then(function(data){
+        if(state.searchQuery.trim()!==q) return; // a newer query has since been typed
+        var mapped = (data.foods||[]).map(mapFdcFood).filter(Boolean).slice(0,12);
+        searchResultsCache = mapped;
+        paintSearchResults(q, mapped);
+      })
+      .catch(function(err){
+        if(err.name==='AbortError') return;
+        if(state.searchQuery.trim()!==q) return;
+        searchResultsCache = [];
+        var msg = err.message==='RATE_LIMIT'
+          ? "USDA's shared demo search limit was hit — try again shortly, or add a personal API key for higher limits."
+          : "Couldn't reach USDA FoodData Central — check your connection, or try \"+ Custom amount\" above.";
+        $('logArea').innerHTML = '<div class="empty-state">'+escapeHtml(msg)+'</div>';
+      });
+  }
+
+  function paintSearchResults(q, results){
+    var area = $('logArea');
+    if(results.length===0){
+      area.innerHTML = '<div class="empty-state">No fiber data found for "'+escapeHtml(q)+'" — try "+ Custom amount" above to log it anyway.</div>';
+    } else {
+      area.innerHTML = results.map(function(f){ return foodRowHtml(f,'add'); }).join('');
+    }
+  }
+
+  var DEFAULT_GOAL = 28;
+
+  // ---------- State (in-memory only — see Me tab for export/import) ----------
+  var state = {
+    goal: DEFAULT_GOAL,
+    profile: { sex:'female', age:'', useCustom:false, customGoal:null },
+    entries: [], // {id,name,emoji,serving,grams,tag,dateStr,loggedAt}
+    searchQuery: ''
+  };
+
+  // ---------- Utilities ----------
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){
+    n = Math.round(n*10)/10;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function toDateStr(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+  function todayStr(){ return toDateStr(new Date()); }
+  function sumForDate(ds){
+    return state.entries.filter(function(e){ return e.dateStr===ds; }).reduce(function(s,e){ return s+e.grams; },0);
+  }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  var toastTimer=null;
+  function toast(msg){
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+
+  // ---------- Goal formula ----------
+  function calcRecommendedGoal(sex, age){
+    age = Number(age);
+    if(!age || age<1) age = 30;
+    var base;
+    if(age < 19){
+      base = Math.min(38, Math.round(age+5));
+    } else if(sex==='male'){
+      base = age<=50 ? 38 : 30;
+    } else if(sex==='female'){
+      base = age<=50 ? 25 : 21;
+    } else {
+      base = age<=50 ? 31 : 25;
+    }
+    return clamp(base, 15, 45);
+  }
+
+  // ---------- Today tab ----------
+  function statusMessage(consumed, goal){
+    if(consumed<=0){
+      return {headline: fmt(goal)+'g remaining today', sub:"Let's get started — log your first food"};
+    }
+    if(consumed>=goal){
+      var over = consumed-goal;
+      return {
+        headline: over>0.05 ? fmt(over)+'g over your goal' : 'Goal reached today',
+        sub:'Nice work — fiber goal hit'
+      };
+    }
+    var remaining = goal-consumed;
+    var pct = consumed/goal;
+    var sub;
+    if(pct<0.5) sub='Good start — keep going';
+    else if(pct<0.85) sub="You're on track — keep going";
+    else sub='Almost there — keep going';
+    return {headline: fmt(remaining)+'g remaining today', sub:sub};
+  }
+
+  function renderRing(){
+    var consumed = sumForDate(todayStr());
+    var goal = state.goal;
+    var pct = goal>0 ? consumed/goal : 0;
+    var ringPct = clamp(pct,0,1);
+    var r = 52, c = 2*Math.PI*r;
+    var offset = c*(1-ringPct);
+    $('ringProgress').setAttribute('stroke-dasharray', c);
+    $('ringProgress').setAttribute('stroke-dashoffset', offset);
+    $('ringNum').textContent = fmt(consumed);
+    $('ringGoal').textContent = fmt(goal);
+    $('ringPct').textContent = Math.round(pct*100)+'%';
+    $('statEaten').textContent = fmt(consumed);
+    $('statGoalLine').textContent = 'Goal: '+fmt(goal)+'g';
+
+    var msg = statusMessage(consumed, goal);
+    $('headline').textContent = msg.headline;
+    $('subtext').textContent = msg.sub;
+    $('statRemaining').textContent = consumed>=goal
+      ? (consumed>goal ? fmt(consumed-goal)+'g over today' : 'Goal reached')
+      : fmt(goal-consumed)+'g to go';
+
+    $('topGoal').textContent = fmt(goal)+'g';
+  }
+
+  function foodRowHtml(food, mode, entryId){
+    // mode: 'add' (from search) or 'remove' (from log)
+    var timeStr = '';
+    if(mode==='remove'){
+      var e = state.entries.filter(function(x){ return x.id===entryId; })[0];
+      if(e){
+        var d = new Date(e.loggedAt);
+        timeStr = pad2(d.getHours())+':'+pad2(d.getMinutes());
+      }
+    }
+    var actionHtml = mode==='add'
+      ? '<button class="row-add" type="button" data-add="'+food.id+'" aria-label="Add '+escapeHtml(food.name)+'">+</button>'
+      : '<button class="row-remove" type="button" data-remove="'+entryId+'" aria-label="Remove">×</button>';
+    var sideTop = mode==='add'
+      ? '<div class="row-grams">'+fmt(food.grams)+'g</div>'
+      : '<div class="row-grams">'+fmt(food.grams)+'g</div><div class="row-time">'+timeStr+'</div>';
+    return (
+      '<div class="row">' +
+        '<div class="row-avatar">'+food.emoji+'</div>' +
+        '<div class="row-main">' +
+          '<div class="row-name">'+escapeHtml(food.name)+'</div>' +
+          '<div class="row-sub">'+escapeHtml(food.serving)+'</div>' +
+        '</div>' +
+        '<div class="row-side">'+sideTop+'</div>' +
+        actionHtml +
+      '</div>'
+    );
+  }
+
+  function renderLogArea(){
+    var area = $('logArea');
+    var q = state.searchQuery.trim();
+    if(q.length>=2){
+      area.innerHTML = '<div class="empty-state">Searching USDA FoodData Central…</div>';
+      performSearch(q);
+      return;
+    }
+    if(q.length===1){
+      area.innerHTML = '<div class="empty-state">Keep typing to search USDA FoodData Central…</div>';
+      return;
+    }
+    var todays = state.entries.filter(function(e){ return e.dateStr===todayStr(); })
+      .sort(function(a,b){ return new Date(b.loggedAt)-new Date(a.loggedAt); });
+    if(todays.length===0){
+      area.innerHTML = '<div class="empty-state">Nothing logged yet today — search above to add your first food.</div>';
+      return;
+    }
+    area.innerHTML = todays.map(function(e){
+      return foodRowHtml({name:e.name,emoji:e.emoji,serving:e.serving,grams:e.grams}, 'remove', e.id);
+    }).join('');
+  }
+
+  function addEntry(food){
+    state.entries.push({
+      id: uid(), name: food.name, emoji: food.emoji, serving: food.serving,
+      grams: food.grams, tag: food.tag, dateStr: todayStr(), loggedAt: new Date().toISOString()
+    });
+    toast(food.name+' logged — +'+fmt(food.grams)+'g');
+    renderAll();
+  }
+  function removeEntry(id){
+    state.entries = state.entries.filter(function(e){ return e.id!==id; });
+    renderAll();
+  }
+
+  // ---------- Sources tab ----------
+  function renderSources(){
+    var todays = state.entries.filter(function(e){ return e.dateStr===todayStr(); });
+    var listEl = $('sourceList');
+    if(todays.length===0){
+      listEl.innerHTML = '<div class="empty-state">Log a food on the Today tab to see today\'s sources here.</div>';
+    } else {
+      var sorted = todays.slice().sort(function(a,b){ return b.grams-a.grams; });
+      var max = sorted[0].grams;
+      listEl.innerHTML = sorted.map(function(e){
+        var pct = max>0 ? (e.grams/max*100) : 0;
+        return (
+          '<div class="source-row">' +
+            '<div class="source-name">'+e.emoji+' '+escapeHtml(e.name)+'</div>' +
+            '<div class="source-bar-track"><div class="source-bar-fill" style="width:'+pct.toFixed(0)+'%"></div></div>' +
+            '<div class="source-grams">'+fmt(e.grams)+'g</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    var soluble=0, insoluble=0;
+    todays.forEach(function(e){
+      if(e.tag==='soluble') soluble += e.grams;
+      else if(e.tag==='insoluble') insoluble += e.grams;
+      else { soluble += e.grams/2; insoluble += e.grams/2; }
+    });
+    var total = soluble+insoluble;
+    var solPct = total>0 ? (soluble/total*100) : 50;
+    var insPct = total>0 ? 100-solPct : 50;
+    $('splitBar').innerHTML =
+      '<div class="split-seg-soluble" style="width:'+solPct.toFixed(1)+'%"></div>' +
+      '<div class="split-seg-insoluble" style="width:'+insPct.toFixed(1)+'%"></div>';
+    $('splitValues').innerHTML = '<span>'+fmt(soluble)+'g soluble</span><span>'+fmt(insoluble)+'g insoluble</span>';
+  }
+
+  // ---------- Progress tab ----------
+  var DOW = ['S','M','T','W','T','F','S'];
+  function last7Days(){
+    var res = [];
+    for(var i=6;i>=0;i--){
+      var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i);
+      var ds = toDateStr(d);
+      res.push({dateStr:ds, label:DOW[d.getDay()], grams:sumForDate(ds), isToday:i===0, dateObj:d});
+    }
+    return res;
+  }
+  function calcStreak(){
+    var streak=0;
+    var d = new Date(); d.setHours(0,0,0,0);
+    if(sumForDate(toDateStr(d)) < state.goal){
+      d.setDate(d.getDate()-1);
+    }
+    while(true){
+      var ds = toDateStr(d);
+      if(sumForDate(ds) >= state.goal){ streak++; d.setDate(d.getDate()-1); }
+      else break;
+      if(streak>3650) break; // safety
+    }
+    return streak;
+  }
+
+  var tooltipHideTimer=null;
+  function showTooltip(x,y,text){
+    var tt = $('chartTooltip');
+    tt.textContent = text;
+    tt.style.left = x+'px';
+    tt.style.top = y+'px';
+    tt.classList.add('show');
+    clearTimeout(tooltipHideTimer);
+  }
+  function hideTooltip(){
+    tooltipHideTimer = setTimeout(function(){ $('chartTooltip').classList.remove('show'); }, 60);
+  }
+
+  function renderProgress(){
+    $('streakNum').textContent = calcStreak();
+    var days = last7Days();
+    var avg = days.reduce(function(s,d){ return s+d.grams; },0)/7;
+    $('avgNum').textContent = fmt(avg);
+
+    var goal = state.goal;
+    var maxVal = Math.max(goal, 1, Math.max.apply(null, days.map(function(d){ return d.grams; })));
+    var w=320,h=176,padL=24,padR=12,padT=16,padB=26;
+    var plotW=w-padL-padR, plotH=h-padT-padB;
+    var gap = plotW/7;
+    var barW = gap*0.5;
+
+    var bars='', labels='';
+    days.forEach(function(d,i){
+      var x = padL + gap*i + (gap-barW)/2;
+      var barH = Math.max(2, (d.grams/maxVal)*plotH);
+      var y = padT+plotH-barH;
+      var fill = d.isToday ? 'var(--accent-deep)' : 'var(--accent)';
+      bars += '<rect class="chart-bar" data-i="'+i+'" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+barH.toFixed(1)+'" rx="4" fill="'+fill+'"></rect>';
+      labels += '<text x="'+(x+barW/2).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle" class="chart-axis">'+d.label+'</text>';
+      if(d.isToday && d.grams>0){
+        labels += '<text x="'+(x+barW/2).toFixed(1)+'" y="'+(y-6).toFixed(1)+'" text-anchor="middle" class="chart-val">'+fmt(d.grams)+'</text>';
+      }
+    });
+    var goalY = padT+plotH-(goal/maxVal*plotH);
+    var goalLine = '<line x1="'+padL+'" y1="'+goalY.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+goalY.toFixed(1)+'" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3"></line>' +
+      '<text x="'+(w-padR)+'" y="'+(goalY-4).toFixed(1)+'" text-anchor="end" class="chart-axis">goal</text>';
+
+    $('chartArea').innerHTML = '<svg class="chart-svg" viewBox="0 0 '+w+' '+h+'">'+goalLine+bars+labels+'</svg>';
+
+    var rects = $('chartArea').querySelectorAll('.chart-bar');
+    rects.forEach(function(rect){
+      var i = Number(rect.getAttribute('data-i'));
+      var d = days[i];
+      function onMove(evt){
+        var pt = (evt.touches && evt.touches[0]) || evt;
+        var label = d.dateObj.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+        showTooltip(pt.clientX, pt.clientY, label+' · '+fmt(d.grams)+'g');
+      }
+      rect.addEventListener('mouseenter', onMove);
+      rect.addEventListener('mousemove', onMove);
+      rect.addEventListener('mouseleave', hideTooltip);
+      rect.addEventListener('touchstart', function(evt){ onMove(evt); }, {passive:true});
+      rect.addEventListener('touchend', hideTooltip);
+    });
+  }
+
+  // ---------- Me tab ----------
+  function renderMe(){
+    $('meGoal').textContent = fmt(state.goal)+'g';
+    var distinctDays = {};
+    state.entries.forEach(function(e){ distinctDays[e.dateStr]=true; });
+    $('meDays').textContent = Object.keys(distinctDays).length;
+    $('meTotal').textContent = state.entries.length;
+  }
+
+  // ---------- Goal tab ----------
+  function updateRecommendPreview(){
+    var sex = $('gSex').value, age = $('gAge').value;
+    var rec = calcRecommendedGoal(sex, age);
+    $('recommendNum').textContent = rec+'g';
+    return rec;
+  }
+  function initGoalForm(){
+    $('gSex').value = state.profile.sex;
+    $('gAge').value = state.profile.age;
+    $('gCustomToggle').checked = state.profile.useCustom;
+    $('gCustomGrams').value = state.profile.customGoal || '';
+    $('gCustomWrapLabel').hidden = !state.profile.useCustom;
+    $('gCustomGrams').hidden = !state.profile.useCustom;
+    updateRecommendPreview();
+  }
+
+  // ---------- Master render ----------
+  function renderAll(){
+    renderRing();
+    renderLogArea();
+    renderSources();
+    renderProgress();
+    renderMe();
+  }
+
+  // ---------- Tab switching ----------
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var tab = btn.getAttribute('data-tab');
+      ['today','goal','sources','progress','me'].forEach(function(t){
+        $('tab-'+t).hidden = (t!==tab);
+      });
+      if(tab==='goal') initGoalForm();
+    });
+  });
+
+  // ---------- Today tab interactions ----------
+  $('btnQuickAdd').addEventListener('click', function(){
+    $('customForm').hidden = true;
+    $('searchInput').focus();
+    $('searchInput').scrollIntoView({block:'center', behavior:'smooth'});
+  });
+  $('btnCustom').addEventListener('click', function(){
+    $('customForm').hidden = !$('customForm').hidden;
+    if(!$('customForm').hidden){
+      $('customName').focus();
+      $('customForm').scrollIntoView({block:'center', behavior:'smooth'});
+    }
+  });
+  $('customForm').addEventListener('submit', function(evt){
+    evt.preventDefault();
+    var name = $('customName').value.trim();
+    var grams = Number($('customGrams').value);
+    if(!name || !(grams>0)){ toast('Enter a food name and fiber amount'); return; }
+    addEntry({name:name, emoji:'🍽️', serving:'custom entry', grams:grams, tag:'mixed'});
+    $('customName').value='';
+    $('customGrams').value='';
+    $('customForm').hidden = true;
+  });
+  $('searchInput').addEventListener('input', function(){
+    state.searchQuery = this.value;
+    renderLogArea();
+  });
+  $('logArea').addEventListener('click', function(evt){
+    var addBtn = evt.target.closest('[data-add]');
+    if(addBtn){
+      var food = searchResultsCache.filter(function(f){ return f.id===addBtn.getAttribute('data-add'); })[0];
+      if(food) addEntry(food);
+      return;
+    }
+    var rmBtn = evt.target.closest('[data-remove]');
+    if(rmBtn){
+      removeEntry(rmBtn.getAttribute('data-remove'));
+    }
+  });
+
+  // ---------- Goal tab interactions ----------
+  ['gSex','gAge'].forEach(function(id){
+    $(id).addEventListener('input', updateRecommendPreview);
+    $(id).addEventListener('change', updateRecommendPreview);
+  });
+  $('gCustomToggle').addEventListener('change', function(){
+    $('gCustomWrapLabel').hidden = !this.checked;
+    $('gCustomGrams').hidden = !this.checked;
+    if(this.checked) $('gCustomGrams').focus();
+  });
+  $('btnSaveGoal').addEventListener('click', function(){
+    var sex = $('gSex').value, age = $('gAge').value;
+    var useCustom = $('gCustomToggle').checked;
+    var customGoal = Number($('gCustomGrams').value);
+    var recommended = calcRecommendedGoal(sex, age);
+    state.profile = {sex:sex, age:age, useCustom:useCustom, customGoal: useCustom ? customGoal : null};
+    state.goal = (useCustom && customGoal>0) ? clamp(customGoal,1,100) : recommended;
+    renderAll();
+    var note = $('saveNote');
+    note.classList.add('show');
+    setTimeout(function(){ note.classList.remove('show'); }, 1800);
+    toast('Goal set to '+fmt(state.goal)+'g/day');
+  });
+
+  // ---------- Me tab: export / import / reset ----------
+  $('btnExport').addEventListener('click', function(){
+    var payload = {version:1, exportedAt:new Date().toISOString(), goal:state.goal, profile:state.profile, entries:state.entries};
+    var blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'fibersnap-backup-'+todayStr()+'.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('Backup downloaded');
+  });
+  $('btnImportBtn').addEventListener('click', function(){ $('importFile').click(); });
+  $('importFile').addEventListener('change', function(evt){
+    var file = evt.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var data = JSON.parse(reader.result);
+        if(!data || !Array.isArray(data.entries)) throw new Error('bad file');
+        state.entries = data.entries.filter(function(e){
+          return e && typeof e.name==='string' && typeof e.grams==='number' && typeof e.dateStr==='string';
+        });
+        if(data.goal) state.goal = data.goal;
+        if(data.profile) state.profile = Object.assign(state.profile, data.profile);
+        renderAll();
+        toast('Backup imported — '+state.entries.length+' entries loaded');
+      }catch(err){
+        toast("Couldn't read that file — is it a FiberSnap backup?");
+      }
+      $('importFile').value = '';
+    };
+    reader.readAsText(file);
+  });
+  $('btnReset').addEventListener('click', function(){ $('resetConfirm').hidden = false; });
+  $('btnResetNo').addEventListener('click', function(){ $('resetConfirm').hidden = true; });
+  $('btnResetYes').addEventListener('click', function(){
+    state.entries = [];
+    $('resetConfirm').hidden = true;
+    renderAll();
+    toast('Log cleared');
+  });
+
+  // ---------- Init ----------
+  initGoalForm();
+  renderAll();
+})();
+</script>
+</body>
+</html>

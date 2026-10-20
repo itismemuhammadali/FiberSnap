@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "334993793464",
+    "project_id": "fibersnap-1",
+    "storage_bucket": "fibersnap-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:334993793464:android:d8755cead5ad4845486f4d",
+        "android_client_info": {
+          "package_name": "com.duomatic.fibersnap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "334993793464-0vdfflm053up51108g42dc6nk42idr2a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBItlRu_uIazwkRXd5QMDxLSTGuw3X2te0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "334993793464-0vdfflm053up51108g42dc6nk42idr2a.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "334993793464-fdb076ekqan7c68r5d4sf7psljpg64fm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.duomatic.fibersnap"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

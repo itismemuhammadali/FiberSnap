@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profile documents: only accessible by owner
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Logged food entries: only accessible by owner
+      match /entries/{entryId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Summaries & metrics
+      match /summaries/{summaryId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Remote config parameters fallback
+    match /remote_config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "fibersnap-1"
+  },
+  "targets": {
+    "fibersnap-1": {
+      "storage": {
+        "rules": [
+          "storage.rules"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
