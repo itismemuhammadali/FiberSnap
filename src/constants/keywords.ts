@@ -24,6 +24,27 @@ export function classifyFiberType(foodName: string): FiberTag {
 }
 
 /**
+ * Accurately determines whether a food is Soluble-dominant, Insoluble-dominant,
+ * or Mixed based on its actual biochemical fiber gram split.
+ * - Soluble dominant: >= 67% (two-thirds) soluble
+ * - Insoluble dominant: >= 67% (two-thirds) insoluble
+ * - Mixed: both soluble and insoluble are present in significant amounts (33% - 67%)
+ */
+export function getFiberTagFromGrams(solubleGrams: number, insolubleGrams: number): FiberTag {
+  const sol = Math.max(0, Number(solubleGrams) || 0);
+  const ins = Math.max(0, Number(insolubleGrams) || 0);
+  const total = sol + ins;
+  if (total <= 0) return 'mixed';
+
+  const solRatio = sol / total;
+  const insRatio = ins / total;
+
+  if (solRatio >= 0.67) return 'soluble';
+  if (insRatio >= 0.67) return 'insoluble';
+  return 'mixed';
+}
+
+/**
  * Calculates estimated soluble and insoluble grams from total fiber grams and tag
  */
 export function estimateFiberSplit(

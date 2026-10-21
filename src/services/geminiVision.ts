@@ -1,13 +1,63 @@
 import { GeminiScanResult } from '../types';
 import { RemoteConfigService } from './firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
+
+const AI_SCAN_CACHE_KEY = '@fibersnap_ai_scan_cache_v2';
+let scanMemoryCache: Record<string, Omit<GeminiScanResult, 'imageUri'>> = {};
+let isScanCacheInit = false;
+
+async function initScanCache(): Promise<void> {
+  if (isScanCacheInit) return;
+  try {
+    const raw = await AsyncStorage.getItem(AI_SCAN_CACHE_KEY);
+    if (raw) {
+      scanMemoryCache = JSON.parse(raw);
+    }
+  } catch {
+    scanMemoryCache = {};
+  }
+  isScanCacheInit = true;
+}
+
+function computeImageSignature(base64: string): string {
+  if (!base64 || base64.length === 0) return 'empty_image';
+  let h1 = 5381;
+  let h2 = 52711;
+  const len = base64.length;
+  const step = Math.max(1, Math.floor(len / 800));
+  for (let i = 0; i < len; i += step) {
+    const code = base64.charCodeAt(i);
+    h1 = ((h1 << 5) + h1) ^ code;
+    h2 = ((h2 << 5) + h2) ^ code;
+  }
+  return `sig_${Math.abs(h1).toString(36)}_${Math.abs(h2).toString(36)}_${len}`;
+}
+
+async function persistScanResult(signature: string, result: Omit<GeminiScanResult, 'imageUri'>): Promise<void> {
+  try {
+    scanMemoryCache[signature] = result;
+    await AsyncStorage.setItem(AI_SCAN_CACHE_KEY, JSON.stringify(scanMemoryCache));
+  } catch (err) {
+    console.warn('Failed to persist AI scan cache:', err);
+  }
+}
 
 export async function scanMealPhoto(
   base64Data: string,
   imageUri?: string
 ): Promise<GeminiScanResult> {
+  await initScanCache();
+  const imageSignature = computeImageSignature(base64Data);
+
+  // Return 100% deterministic cached result if the same image is scanned repeatedly
+  if (scanMemoryCache[imageSignature]) {
+    const cached = scanMemoryCache[imageSignature];
+    return { ...cached, imageUri };
+  }
+
   const apiKey = await RemoteConfigService.getGeminiApiKey();
 
   // If no Gemini key is provided, provide a rich, realistic vision simulation
@@ -64,6 +114,45 @@ export async function scanMealPhoto(
     return { ...sampleMeals[idx], imageUri };
   }
 
+function parseNutritionValues(parsed: any) {
+  const parseNum = (val: any): number | null => {
+    if (val === undefined || val === null || val === '') return null;
+    const n = Number(val);
+    return isNaN(n) ? null : Math.max(0, n);
+  };
+
+  const parsedTotal = parseNum(parsed.total_fiber_g ?? parsed.totalGrams);
+  const parsedSoluble = parseNum(parsed.soluble_fiber_g ?? parsed.solubleGrams);
+  const parsedInsoluble = parseNum(parsed.insoluble_fiber_g ?? parsed.insolubleGrams);
+
+  let total = parsedTotal !== null ? parsedTotal : 0;
+  let soluble = parsedSoluble !== null ? parsedSoluble : 0;
+  let insoluble = parsedInsoluble !== null ? parsedInsoluble : 0;
+
+  if (total === 0) {
+    // If total fiber is zero (e.g. brewed tea, coffee, clear broth, animal protein, oil),
+    // soluble and insoluble MUST strictly be zero.
+    soluble = 0;
+    insoluble = 0;
+  } else {
+    // If total > 0 but split was not provided
+    if (parsedSoluble === null && parsedInsoluble === null) {
+      soluble = Math.round(total * 0.45 * 10) / 10;
+      insoluble = Math.round((total - soluble) * 10) / 10;
+    } else if (parsedSoluble === null) {
+      soluble = Math.max(0, Math.round((total - insoluble) * 10) / 10);
+    } else if (parsedInsoluble === null) {
+      insoluble = Math.max(0, Math.round((total - soluble) * 10) / 10);
+    }
+  }
+
+  return {
+    total: Math.round(total * 10) / 10,
+    soluble: Math.round(soluble * 10) / 10,
+    insoluble: Math.round(insoluble * 10) / 10,
+  };
+}
+
   const promptText = `
 You are an expert precision dietary nutrition vision specialist.
 Analyze this meal photo with maximum nutritional accuracy and consistency.
@@ -77,6 +166,7 @@ STRICT RESTRICTIONS & GUIDELINES:
    - Ignore plates, bowls, cutlery, table backgrounds, napkins, cups, and packaging. Focus exclusively on edible ingredients.
 3. FIBER BIOCHEMISTRY (USDA / IOM STANDARDS):
    - Only plant-derived foods contain fiber (legumes, grains, vegetables, fruits, seeds, nuts). Animal proteins (beef, chicken, fish, eggs), pure fats, and dairy contain 0g fiber.
+   - BEVERAGES, TEAS, COFFEES & INFUSIONS (CRITICAL): Brewed teas (green tea, herbal tea, black tea, peppermint tea), brewed coffee, espresso, water, clear broths, and sodas contain EXACTLY ZERO dietary fiber (0.0g total, 0.0g soluble, 0.0g insoluble) because plant fibers and cellulose are retained in the tea bag, leaves, or coffee filter. You MUST return 0.0 for total_fiber_g, soluble_fiber_g, and insoluble_fiber_g for brewed teas and coffees!
    - Soluble fiber dissolves in water to form a viscous gel (oats, barley, legumes, chia/flaxseeds, apples, citrus, carrots).
    - Insoluble fiber provides digestive bulk (wheat bran, whole grains, vegetable peels/skins, leafy greens, nuts, seeds).
    - Mathematical constraint: total_fiber_g MUST equal soluble_fiber_g + insoluble_fiber_g.
@@ -111,19 +201,18 @@ Do not include markdown fences or extraneous text. Return strictly pure JSON.
 
     if (cloudRes.data?.success && cloudRes.data?.data) {
       const parsed = cloudRes.data.data;
-      const total = Number(parsed.total_fiber_g) || 5.0;
-      const soluble = Number(parsed.soluble_fiber_g) || Math.round((total * 0.45) * 10) / 10;
-      const insoluble = Number(parsed.insoluble_fiber_g) || Math.round((total - soluble) * 10) / 10;
+      const { total, soluble, insoluble } = parseNutritionValues(parsed);
 
-      return {
+      const scanResult = {
         foodName: parsed.food_name || parsed.foodName || 'Scanned Meal',
         portion: parsed.portion_description || parsed.portion || '1 serving',
-        total_fiber_g: Math.round(total * 10) / 10,
-        soluble_fiber_g: Math.round(soluble * 10) / 10,
-        insoluble_fiber_g: Math.round(insoluble * 10) / 10,
+        total_fiber_g: total,
+        soluble_fiber_g: soluble,
+        insoluble_fiber_g: insoluble,
         notes: parsed.clinical_notes || parsed.notes || 'Nutrient estimates derived from AI visual analysis.',
-        imageUri,
       };
+      await persistScanResult(imageSignature, scanResult);
+      return { ...scanResult, imageUri };
     }
   } catch (cloudErr) {
     // Cloud function not yet deployed or error, fall through to direct Gemini call
@@ -152,6 +241,9 @@ Do not include markdown fences or extraneous text. Return strictly pure JSON.
         ],
         generationConfig: {
           temperature: 0.0,
+          topP: 1.0,
+          topK: 1,
+          seed: 42,
           responseMimeType: 'application/json',
         },
       }),
@@ -170,19 +262,18 @@ Do not include markdown fences or extraneous text. Return strictly pure JSON.
     }
 
     const parsed = JSON.parse(candidate);
-    const total = Number(parsed.total_fiber_g) || 5.0;
-    const soluble = Number(parsed.soluble_fiber_g) || Math.round((total * 0.45) * 10) / 10;
-    const insoluble = Number(parsed.insoluble_fiber_g) || Math.round((total - soluble) * 10) / 10;
+    const { total, soluble, insoluble } = parseNutritionValues(parsed);
 
-    return {
+    const scanResult = {
       foodName: parsed.foodName || 'Scanned Meal',
       portion: parsed.portion || '1 serving',
-      total_fiber_g: Math.round(total * 10) / 10,
-      soluble_fiber_g: Math.round(soluble * 10) / 10,
-      insoluble_fiber_g: Math.round(insoluble * 10) / 10,
+      total_fiber_g: total,
+      soluble_fiber_g: soluble,
+      insoluble_fiber_g: insoluble,
       notes: parsed.notes || 'Nutrient estimates derived from AI visual analysis.',
-      imageUri,
     };
+    await persistScanResult(imageSignature, scanResult);
+    return { ...scanResult, imageUri };
   } catch (error) {
     console.warn('Gemini API failed or encountered network issue, falling back to heuristic vision estimation:', error);
     let hash = 0;
@@ -238,6 +329,8 @@ Do not include markdown fences or extraneous text. Return strictly pure JSON.
       },
     ];
     const idx = Math.abs(hash) % sampleMeals.length;
-    return { ...sampleMeals[idx], imageUri };
+    const fallbackResult = sampleMeals[idx];
+    await persistScanResult(imageSignature, fallbackResult);
+    return { ...fallbackResult, imageUri };
   }
 }

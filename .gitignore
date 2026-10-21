@@ -42,3 +42,7 @@ yarn-error.*
 *.zip
 *.docx
 .env
+
+# Release builds
+*.aab
+*.apk

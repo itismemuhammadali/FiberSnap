@@ -250,7 +250,7 @@ export const TodayScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Topbar with exact green background and safe-area padding */}
-      <TopBar title="FiberSnap" subtitle="Fiber, in a snap." showGoalBadge={true} />
+      <TopBar title="FiberSnap" subtitle="Track dietary fiber, in a snap." showGoalBadge={true} />
 
       <ScrollView
         contentContainerStyle={[
@@ -536,14 +536,14 @@ export const TodayScreen: React.FC = () => {
           animationType="fade"
           onRequestClose={() => setLogChoiceModalVisible(false)}
         >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setLogChoiceModalVisible(false)}
-          >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => setLogChoiceModalVisible(false)}
+            />
             <View
               style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onStartShouldSetResponder={() => true}
             >
               {/* Header Icon & Title */}
               <View style={[styles.modalIconWrap, { backgroundColor: colors.accentSoft }]}>
@@ -624,7 +624,7 @@ export const TodayScreen: React.FC = () => {
                 <Text style={[styles.cancelBtnText, { color: colors.inkSoft }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </Modal>
       )}
 

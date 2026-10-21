@@ -14,7 +14,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { CLINICAL_CITATIONS, CitationItem } from '../constants/guidelines';
-import { RADIUS, SHADOWS } from '../constants/theme';
+import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
 
 type CitationCategory = 'all' | 'guidelines' | 'weight' | 'metabolic' | 'cardio' | 'gut' | 'nutrition';
 
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontWeight: '700',
     fontSize: 18,
   },
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   introTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   citationTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 22,

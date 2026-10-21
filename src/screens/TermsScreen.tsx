@@ -78,7 +78,7 @@ export const TermsScreen: React.FC = () => {
             • <Text style={{ fontWeight: '700', color: colors.ink }}>Free Tier:</Text> Includes full USDA FoodData Central manual search & logging, custom food entries, personalized clinical goals, soluble vs. insoluble breakdowns, 7-day trend history, and 1 complimentary AI camera meal scan trial.
           </Text>
           <Text style={[styles.bodyText, { color: colors.inkSoft, marginTop: 4 }]}>
-            • <Text style={{ fontWeight: '700', color: colors.ink }}>FiberSnap Plus ($6.99/month or $49.99/year with 7-Day Free Trial):</Text> Unlocks unlimited Gemini AI camera and gallery meal vision scans, 30-day and 1-year longitudinal analytics, and automatic encrypted cloud backup.
+            • <Text style={{ fontWeight: '700', color: colors.ink }}>FiberSnap Plus ($6.99/month or $49.99/year with 7-Day Free Trial):</Text> Unlocks unlimited Gemini AI camera and gallery meal vision scans, and 30-day trend analytics.
           </Text>
           <Text style={[styles.bodyText, { color: colors.inkSoft, marginTop: 4 }]}>
             • <Text style={{ fontWeight: '700', color: colors.ink }}>Billing & Auto-Renewal:</Text> Payment is charged to your Apple App Store or Google Play account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current billing cycle.
@@ -99,7 +99,7 @@ export const TermsScreen: React.FC = () => {
 
           <Text style={[styles.sectionHeading, { color: colors.ink }]}>7. Contact Information</Text>
           <Text style={[styles.bodyText, { color: colors.inkSoft }]}>
-            For legal inquiries, terms clarifications, or customer support, please contact us at: legal@fibersnap.app.
+            For legal inquiries, terms clarifications, or customer support, please contact us at: hello@duomatic.co.
           </Text>
         </View>
       </ScrollView>

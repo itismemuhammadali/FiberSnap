@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Rect, Line, Text as SvgText, G } from 'react-native-svg';
 import { useApp } from '../context/AppContext';
 import { DaySummary, MonthSummary } from '../types';
-import { RADIUS, SHADOWS } from '../constants/theme';
+import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
 
 export type ChartPeriod = '1d' | '7d' | '30d' | '1y';
 
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   cardTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,

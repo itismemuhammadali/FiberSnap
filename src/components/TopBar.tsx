@@ -65,7 +65,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             {title || 'FiberSnap'}
           </Text>
           <Text style={[styles.brandTag, { color: colors.accentInk }]}>
-            {subtitle || 'Fiber, in a snap.'}
+            {subtitle || 'Track dietary fiber, in a snap.'}
           </Text>
         </View>
       </View>

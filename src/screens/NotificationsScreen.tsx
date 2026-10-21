@@ -176,17 +176,17 @@ export const NotificationsScreen: React.FC = () => {
           animationType="fade"
           onRequestClose={() => setDropdownVisible(false)}
         >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setDropdownVisible(false)}
-          >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => setDropdownVisible(false)}
+            />
             <View
               style={[
                 styles.modalCard,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
-              onStartShouldSetResponder={() => true}
             >
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: colors.ink }]}>Select Reminder Time</Text>
@@ -202,59 +202,66 @@ export const NotificationsScreen: React.FC = () => {
                 Choose when you would like FiberSnap to remind you each day:
               </Text>
 
-              {TIME_OPTIONS.map((opt) => {
-                const isSelected = opt.value === selectedTime;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[
-                      styles.optionRow,
-                      {
-                        backgroundColor: isSelected ? colors.accentSoft : colors.surface2,
-                        borderColor: isSelected ? colors.accentDeep : colors.border,
-                      },
-                    ]}
-                    onPress={() => handleSelectTime(opt.value)}
-                    activeOpacity={0.75}
-                  >
-                    <View style={styles.radioDotWrap}>
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          { borderColor: isSelected ? colors.accentDeep : colors.inkFaint },
-                        ]}
-                      >
-                        {isSelected && (
-                          <View
-                            style={[
-                              styles.radioInner,
-                              { backgroundColor: colors.accentDeep },
-                            ]}
-                          />
-                        )}
+              <ScrollView
+                style={{ flexShrink: 1 }}
+                contentContainerStyle={{ paddingBottom: 6 }}
+                showsVerticalScrollIndicator={true}
+                bounces={true}
+              >
+                {TIME_OPTIONS.map((opt) => {
+                  const isSelected = opt.value === selectedTime;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        styles.optionRow,
+                        {
+                          backgroundColor: isSelected ? colors.accentSoft : colors.surface2,
+                          borderColor: isSelected ? colors.accentDeep : colors.border,
+                        },
+                      ]}
+                      onPress={() => handleSelectTime(opt.value)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={styles.radioDotWrap}>
+                        <View
+                          style={[
+                            styles.radioOuter,
+                            { borderColor: isSelected ? colors.accentDeep : colors.inkFaint },
+                          ]}
+                        >
+                          {isSelected && (
+                            <View
+                              style={[
+                                styles.radioInner,
+                                { backgroundColor: colors.accentDeep },
+                              ]}
+                            />
+                          )}
+                        </View>
                       </View>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.optionLabel,
-                          { color: isSelected ? colors.accentDeep : colors.ink, fontWeight: isSelected ? '700' : '600' },
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                      <Text style={[styles.optionPeriod, { color: colors.inkSoft }]}>
-                        {opt.period}
-                      </Text>
-                    </View>
-                    {isSelected && (
-                      <Ionicons name="checkmark" size={18} color={colors.accentDeep} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.optionLabel,
+                            { color: isSelected ? colors.accentDeep : colors.ink, fontWeight: isSelected ? '700' : '600' },
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                        <Text style={[styles.optionPeriod, { color: colors.inkSoft }]}>
+                          {opt.period}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={18} color={colors.accentDeep} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-          </TouchableOpacity>
+          </View>
         </Modal>
       )}
     </View>
@@ -386,6 +393,7 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 380,
+    maxHeight: '82%',
     borderRadius: RADIUS.card,
     borderWidth: 1,
     padding: 20,

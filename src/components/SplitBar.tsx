@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'rea
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
-import { RADIUS, SHADOWS } from '../constants/theme';
+import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
 
 interface SplitBarProps {
   solubleGrams: number;
@@ -94,14 +94,17 @@ export const SplitBar: React.FC<SplitBarProps> = ({
       animationType="fade"
       onRequestClose={() => setShowInfoModal(false)}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={() => setShowInfoModal(false)}
-      >
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={() => setShowInfoModal(false)}
+        />
         <View
-          style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onStartShouldSetResponder={() => true}
+          style={[
+            styles.modalCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
           <View style={styles.modalHeaderRow}>
             <View style={[styles.modalIconWrap, { backgroundColor: colors.accentSoft }]}>
@@ -110,12 +113,21 @@ export const SplitBar: React.FC<SplitBarProps> = ({
             <Text style={[styles.modalTitle, { color: colors.ink, flex: 1, marginBottom: 0 }]}>
               Soluble vs. Insoluble Science
             </Text>
-            <TouchableOpacity onPress={() => setShowInfoModal(false)}>
+            <TouchableOpacity
+              onPress={() => setShowInfoModal(false)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Ionicons name="close" size={22} color={colors.inkSoft} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ marginVertical: 12, maxHeight: 360 }}>
+          <ScrollView
+            style={styles.modalScrollView}
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+            bounces={true}
+          >
             <Text style={[styles.infoParagraph, { color: colors.ink }]}>
               Extensive dietary science demonstrates that plant fiber functions via two distinct, complementary physiological mechanisms:
             </Text>
@@ -158,7 +170,7 @@ export const SplitBar: React.FC<SplitBarProps> = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 
@@ -196,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontWeight: '700',
     fontSize: 18,
   },
@@ -258,15 +270,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   modalCard: {
     width: '100%',
     maxWidth: 420,
+    maxHeight: '82%',
     borderRadius: RADIUS.card,
     borderWidth: 1,
     padding: 20,
     ...SHADOWS.card,
+  },
+  modalScrollView: {
+    flexShrink: 1,
+    marginVertical: 10,
+  },
+  modalScrollContent: {
+    paddingBottom: 14,
   },
   modalHeaderRow: {
     flexDirection: 'row',

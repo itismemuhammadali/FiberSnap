@@ -134,18 +134,16 @@ export const DARK_THEME: ThemeColors = {
 };
 
 export const FONTS = {
-  // Client specification from fibersnap.html:
-  // var(--font-serif): Georgia, 'Times New Roman', Times, serif
-  // var(--font-sans): -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif
+  // Modern San Francisco Pro / Sans-Serif throughout the application
   serif: Platform.select({
-    ios: 'Georgia',
-    android: 'serif',
-    default: 'Georgia',
+    ios: 'System',
+    android: 'sans-serif',
+    default: 'sans-serif',
   }),
   serifItalic: Platform.select({
-    ios: 'Georgia-Italic',
-    android: 'serif',
-    default: 'Georgia',
+    ios: 'System',
+    android: 'sans-serif',
+    default: 'sans-serif',
   }),
   sans: Platform.select({
     ios: 'System',

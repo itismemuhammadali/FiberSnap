@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FoodEntry } from '../types';
 import { useApp } from '../context/AppContext';
+import { FONTS } from '../constants/theme';
+import { CachedImage } from './CachedImage';
 
 interface FoodRowProps {
   entry: FoodEntry;
@@ -12,7 +14,6 @@ interface FoodRowProps {
 
 export const FoodRow: React.FC<FoodRowProps> = ({ entry, onDelete, onEdit }) => {
   const { colors } = useApp();
-  const [imageError, setImageError] = useState(false);
 
   const timeFormatted = new Date(entry.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
@@ -43,16 +44,16 @@ export const FoodRow: React.FC<FoodRowProps> = ({ entry, onDelete, onEdit }) => 
           {
             backgroundColor: colors.accentSoft,
             borderColor: colors.border,
-            borderWidth: entry.imageUri && !imageError ? 1 : 0,
+            borderWidth: entry.imageUri ? 1 : 0,
           },
         ]}
       >
-        {entry.imageUri && !imageError ? (
-          <Image
+        {entry.imageUri ? (
+          <CachedImage
             source={{ uri: entry.imageUri }}
             style={styles.avatarImage}
             resizeMode="cover"
-            onError={() => setImageError(true)}
+            fallback={<Text style={styles.avatarEmoji}>{getAvatarEmoji()}</Text>}
           />
         ) : (
           <Text style={styles.avatarEmoji}>{getAvatarEmoji()}</Text>
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sub: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontStyle: 'italic',
     fontSize: 12,
     marginTop: 2,
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   grams: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontSize: 15,
     fontWeight: '700',
   },

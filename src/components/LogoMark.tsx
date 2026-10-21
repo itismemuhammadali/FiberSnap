@@ -137,7 +137,7 @@ export const LogoMark: React.FC<LogoMarkProps> = ({
             <Text style={{ color: snapColor, fontWeight: '800' }}>Snap</Text>
           </Text>
           {showTagline && (
-            <Text style={[styles.tagline, { color: taglineColor }]}>Fiber, in a snap.</Text>
+            <Text style={[styles.tagline, { color: taglineColor }]}>Track dietary fiber, in a snap.</Text>
           )}
         </View>
       )}

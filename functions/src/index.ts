@@ -35,6 +35,7 @@ CRITICAL INCLUSION & EXCLUSION RULES:
 3. FIBER BIOCHEMISTRY (USDA / IOM STANDARDS):
    - ONLY PLANT FOODS CONTAIN DIETARY FIBER.
    - Pure meats, poultry, fish, eggs, dairy oils, and animal fats contain EXACTLY 0.0g of dietary fiber.
+   - BEVERAGES, TEAS, COFFEES & INFUSIONS: Brewed green tea, herbal tea, black tea, brewed coffee, espresso, water, clear broths, and sodas contain EXACTLY ZERO dietary fiber (0.0g total, 0.0g soluble, 0.0g insoluble) because plant fibers remain in the tea leaves, bag, or coffee grounds. You MUST return total_fiber_g: 0.0, soluble_fiber_g: 0.0, insoluble_fiber_g: 0.0 for brewed teas and coffees!
    - Always ensure: total_fiber_g = soluble_fiber_g + insoluble_fiber_g.
 4. ESTIMATE REALISTIC PORTIONS:
    - Estimate portion in grams based on visual reference size against standard cutlery/dinnerware.
@@ -99,6 +100,9 @@ export const analyzeFiberWithGemini = onCall(
         ],
         generationConfig: {
           temperature: 0.0,
+          topP: 1.0,
+          topK: 1,
+          seed: 42,
           maxOutputTokens: 1024,
           responseMimeType: "application/json",
         },

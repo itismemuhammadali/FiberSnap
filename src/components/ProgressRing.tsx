@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../context/AppContext';
-import { RADIUS, SHADOWS } from '../constants/theme';
+import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
 
 interface ProgressRingProps {
   currentGrams: number;
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   headline: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontWeight: '700',
     fontSize: 21,
     letterSpacing: -0.3,
   },
   subtext: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontStyle: 'italic',
     fontSize: 13.5,
     marginTop: 4,
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ringNum: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontWeight: '700',
     fontSize: 30,
     lineHeight: 32,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statBig: {
-    fontFamily: 'Georgia',
+    fontFamily: FONTS.sans,
     fontWeight: '700',
     fontSize: 30,
     lineHeight: 32,

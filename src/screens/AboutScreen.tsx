@@ -204,7 +204,7 @@ export const AboutScreen: React.FC = () => {
             <View style={{ flex: 1 }}>
               <Text style={[styles.tierTitle, { color: colors.ink }]}>FiberSnap Plus</Text>
               <Text style={[styles.tierDesc, { color: colors.inkSoft }]}>
-                Unlimited AI computer vision meal scanning, camera & photo library analysis, 30-day and 1-year longitudinal trends, and automatic cloud backup.
+                Unlimited AI computer vision meal scanning, camera & photo library analysis, and 30-day trends.
               </Text>
             </View>
             <Text style={[styles.tierBadge, { color: colors.accentDeep }]}>$6.99/mo · $49.99/yr</Text>
@@ -236,14 +236,17 @@ export const AboutScreen: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setInfoModalTopic(null)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setInfoModalTopic(null)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setInfoModalTopic(null)}
+          />
           <View
-            style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onStartShouldSetResponder={() => true}
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
           >
             <View style={styles.modalHeaderRow}>
               <View style={[styles.modalIconWrap, { backgroundColor: colors.accentSoft }]}>
@@ -254,12 +257,21 @@ export const AboutScreen: React.FC = () => {
                   ? 'Daily Targets Science'
                   : 'Soluble vs. Insoluble Science'}
               </Text>
-              <TouchableOpacity onPress={() => setInfoModalTopic(null)}>
+              <TouchableOpacity
+                onPress={() => setInfoModalTopic(null)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
                 <Ionicons name="close" size={22} color={colors.inkSoft} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ marginVertical: 12, maxHeight: 360 }}>
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+              bounces={true}
+            >
               {infoModalTopic === 'targets' ? (
                 <>
                   <Text style={[styles.infoParagraph, { color: colors.ink }]}>
@@ -319,7 +331,7 @@ export const AboutScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );
@@ -515,15 +527,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   modalCard: {
     width: '100%',
     maxWidth: 420,
+    maxHeight: '82%',
     borderRadius: RADIUS.card,
     borderWidth: 1,
     padding: 20,
     ...SHADOWS.card,
+  },
+  modalScrollView: {
+    flexShrink: 1,
+    marginVertical: 10,
+  },
+  modalScrollContent: {
+    paddingBottom: 14,
   },
   modalHeaderRow: {
     flexDirection: 'row',

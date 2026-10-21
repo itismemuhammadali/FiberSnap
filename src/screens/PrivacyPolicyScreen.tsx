@@ -116,7 +116,7 @@ export const PrivacyPolicyScreen: React.FC = () => {
 
           <Text style={[styles.sectionHeading, { color: colors.ink }]}>8. Contact Us</Text>
           <Text style={[styles.bodyText, { color: colors.inkSoft }]}>
-            If you have questions, feedback, or data privacy requests under GDPR/CCPA, please contact our privacy compliance team at: privacy@fibersnap.app.
+            If you have questions, feedback, or data privacy requests under GDPR/CCPA, please contact our privacy compliance team at: hello@duomatic.co.
           </Text>
         </View>
       </ScrollView>

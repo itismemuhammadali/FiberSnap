@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { GeminiScanResult } from '../types';
 import { COLORS, RADIUS, SHADOWS } from '../constants/theme';
+import { CachedImage } from './CachedImage';
 
 interface ScanResultModalProps {
   visible: boolean;
@@ -48,9 +49,9 @@ export const ScanResultModal: React.FC<ScanResultModalProps> = ({
     if (result) {
       setFoodName(result.foodName || 'Scanned Meal');
       setPortion(result.portion || '1 serving');
-      setTotalGrams(result.total_fiber_g?.toString() || '0');
-      setSolubleGrams(result.soluble_fiber_g?.toString() || '0');
-      setInsolubleGrams(result.insoluble_fiber_g?.toString() || '0');
+      setTotalGrams(result.total_fiber_g != null ? String(result.total_fiber_g) : '0');
+      setSolubleGrams(result.soluble_fiber_g != null ? String(result.soluble_fiber_g) : '0');
+      setInsolubleGrams(result.insoluble_fiber_g != null ? String(result.insoluble_fiber_g) : '0');
     }
   }, [result]);
 
@@ -109,7 +110,7 @@ export const ScanResultModal: React.FC<ScanResultModalProps> = ({
               {/* Photo Thumbnail if captured */}
               {result.imageUri && (
                 <View style={[styles.imageContainer, { borderColor: colors.border }]}>
-                  <Image source={{ uri: result.imageUri }} style={styles.previewImage} />
+                  <CachedImage source={{ uri: result.imageUri }} style={styles.previewImage} />
                 </View>
               )}
 

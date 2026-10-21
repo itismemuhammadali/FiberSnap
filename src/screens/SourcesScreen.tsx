@@ -14,7 +14,7 @@ import { useApp } from '../context/AppContext';
 import { TopBar } from '../components/TopBar';
 import { SplitBar } from '../components/SplitBar';
 import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
-import { FiberTag } from '../constants/keywords';
+import { FiberTag, getFiberTagFromGrams } from '../constants/keywords';
 
 type SourcesPeriod = 'today' | '7d' | '30d';
 
@@ -67,6 +67,7 @@ export const SourcesScreen: React.FC = () => {
   const { colors, entries } = useApp();
 
   const [period, setPeriod] = useState<SourcesPeriod>('today');
+  const [showAllSources, setShowAllSources] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
   const [tableCategory, setTableCategory] = useState<'all' | 'veggies' | 'legumes' | 'fruits' | 'seeds' | 'grains'>('all');
 
@@ -109,7 +110,7 @@ export const SourcesScreen: React.FC = () => {
           solubleGrams: e.solubleGrams,
           insolubleGrams: e.insolubleGrams,
           portion: e.portion,
-          tag: e.tag,
+          tag: getFiberTagFromGrams(e.solubleGrams, e.insolubleGrams),
           count: 1,
         });
       } else {
@@ -117,6 +118,7 @@ export const SourcesScreen: React.FC = () => {
         existing.totalGrams += e.totalGrams;
         existing.solubleGrams += e.solubleGrams;
         existing.insolubleGrams += e.insolubleGrams;
+        existing.tag = getFiberTagFromGrams(existing.solubleGrams, existing.insolubleGrams);
         existing.count += 1;
       }
     }
@@ -132,6 +134,10 @@ export const SourcesScreen: React.FC = () => {
       highestGrams: maxG,
     };
   }, [filteredEntries]);
+
+  const TOP_LIMIT = 5;
+  const displayedSources = showAllSources ? rankedSources : rankedSources.slice(0, TOP_LIMIT);
+  const remainingCount = Math.max(0, rankedSources.length - TOP_LIMIT);
 
   // Filter Nutrition Table
   const filteredFoodTable = useMemo(() => {
@@ -152,7 +158,7 @@ export const SourcesScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <TopBar title="FiberSnap" subtitle="Fiber, in a snap." showGoalBadge={true} />
+      <TopBar title="FiberSnap" subtitle="Track dietary fiber, in a snap." showGoalBadge={true} />
 
       <ScrollView
         contentContainerStyle={[
@@ -178,7 +184,10 @@ export const SourcesScreen: React.FC = () => {
                     },
                   ],
                 ]}
-                onPress={() => setPeriod(opt.key)}
+                onPress={() => {
+                  setPeriod(opt.key);
+                  setShowAllSources(false);
+                }}
                 activeOpacity={0.8}
               >
                 <Text
@@ -204,7 +213,9 @@ export const SourcesScreen: React.FC = () => {
               </Text>
               <Text style={[styles.subHint, { color: colors.inkSoft }]}>
                 {rankedSources.length > 0
-                  ? `${totalPeriodFiber}g total fiber across ${rankedSources.length} ${rankedSources.length === 1 ? 'food source' : 'food sources'}`
+                  ? (!showAllSources && remainingCount > 0
+                      ? `Top 5 of ${rankedSources.length} food sources · ${totalPeriodFiber}g total fiber`
+                      : `${totalPeriodFiber}g total fiber across ${rankedSources.length} ${rankedSources.length === 1 ? 'food source' : 'food sources'}`)
                   : 'Track meals with AI camera or search to see ranked contributors'}
               </Text>
             </View>
@@ -219,16 +230,17 @@ export const SourcesScreen: React.FC = () => {
             </View>
           ) : (
             <View style={styles.sourcesList}>
-              {rankedSources.map((item, index) => {
+              {displayedSources.map((item, index) => {
                 const barWidthPct = Math.min(100, Math.max(8, Math.round((item.totalGrams / highestGrams) * 100)));
                 const sharePct = totalPeriodFiber > 0
                   ? Math.round((item.totalGrams / totalPeriodFiber) * 100)
                   : 0;
 
+                const dynamicTag = getFiberTagFromGrams(item.solubleGrams, item.insolubleGrams);
                 const tagColor =
-                  item.tag === 'soluble'
+                  dynamicTag === 'soluble'
                     ? colors.soluble
-                    : item.tag === 'insoluble'
+                    : dynamicTag === 'insoluble'
                     ? colors.insoluble
                     : colors.accent;
 
@@ -283,12 +295,31 @@ export const SourcesScreen: React.FC = () => {
                         Soluble: {item.solubleGrams.toFixed(1).replace(/\.0$/, '')}g · Insoluble: {item.insolubleGrams.toFixed(1).replace(/\.0$/, '')}g
                       </Text>
                       <Text style={[styles.tagBadgeText, { color: tagColor }]}>
-                        {capitalize(item.tag)}
+                        {capitalize(dynamicTag)}
                       </Text>
                     </View>
                   </View>
                 );
               })}
+
+              {remainingCount > 0 && (
+                <TouchableOpacity
+                  style={[styles.toggleSourcesBtn, { backgroundColor: colors.surface2, borderColor: colors.border }]}
+                  onPress={() => setShowAllSources(!showAllSources)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.toggleSourcesText, { color: colors.ink }]}>
+                    {showAllSources
+                      ? 'Show Top 5 Only'
+                      : `Show All ${rankedSources.length} Sources (+${remainingCount} More)`}
+                  </Text>
+                  <Ionicons
+                    name={showAllSources ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={colors.inkSoft}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -734,5 +765,20 @@ const styles = StyleSheet.create({
   citationPromoBtnText: {
     fontWeight: '700',
     fontSize: 13.5,
+  },
+  toggleSourcesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  toggleSourcesText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

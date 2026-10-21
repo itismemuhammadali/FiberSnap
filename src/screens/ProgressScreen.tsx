@@ -200,7 +200,7 @@ export const ProgressScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <TopBar title="FiberSnap" subtitle="Fiber, in a snap." showGoalBadge={true} />
+      <TopBar title="FiberSnap" subtitle="Track dietary fiber, in a snap." showGoalBadge={true} />
 
       <ScrollView
         contentContainerStyle={[

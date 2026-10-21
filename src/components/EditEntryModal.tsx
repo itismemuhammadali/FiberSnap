@@ -18,6 +18,7 @@ import { useApp } from '../context/AppContext';
 import { FoodEntry } from '../types';
 import { FiberTag, estimateFiberSplit } from '../constants/keywords';
 import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
+import { CachedImage } from './CachedImage';
 
 interface EditEntryModalProps {
   visible: boolean;
@@ -169,7 +170,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
             {/* Meal Photo Preview if available */}
             {entry.imageUri && !imageError && (
               <View style={[styles.photoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Image
+                <CachedImage
                   source={{ uri: entry.imageUri }}
                   style={styles.photo}
                   resizeMode="cover"

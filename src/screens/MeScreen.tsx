@@ -26,6 +26,7 @@ import { AiConsentModal } from '../components/AiConsentModal';
 import { AuthService } from '../services/firebase';
 import { StorageService } from '../services/storage';
 import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
+import { CachedImage } from '../components/CachedImage';
 
 export const MeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -206,7 +207,7 @@ export const MeScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <TopBar title="FiberSnap" subtitle="Fiber, in a snap." showGoalBadge={true} />
+      <TopBar title="FiberSnap" subtitle="Track dietary fiber, in a snap." showGoalBadge={true} />
 
       <ScrollView
         contentContainerStyle={[
@@ -225,7 +226,7 @@ export const MeScreen: React.FC = () => {
               activeOpacity={0.85}
             >
               {profile.avatarUri ? (
-                <Image source={{ uri: profile.avatarUri }} style={styles.avatarImage} />
+                <CachedImage source={{ uri: profile.avatarUri }} style={styles.avatarImage} />
               ) : (
                 <Text style={[styles.avatarInitials, { color: colors.accentDeep }]}>
                   {(profile.displayName || 'F').charAt(0).toUpperCase()}
@@ -665,14 +666,14 @@ export const MeScreen: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setAvatarChoiceModalVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setAvatarChoiceModalVisible(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setAvatarChoiceModalVisible(false)}
+          />
           <View
             style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={[styles.alertIconWrap, { backgroundColor: colors.accentSoft }]}>
               <Ionicons name="camera" size={28} color={colors.accentDeep} />
@@ -746,7 +747,7 @@ export const MeScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Delete User Data Confirmation Modal */}

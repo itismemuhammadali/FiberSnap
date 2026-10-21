@@ -43,8 +43,9 @@ import {
   getValue,
 } from 'firebase/remote-config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ImageCacheService } from './imageCache';
 import { UserProfile, FoodEntry } from '../types';
 
 // Production Firebase Configuration from fibersnap-1
@@ -290,8 +291,26 @@ export const CloudDbService = {
 
   async saveEntry(uid: string, entry: FoodEntry): Promise<void> {
     try {
+      let entryToSave: FoodEntry = { ...entry };
+
+      // Ensure local photo is uploaded to Firebase Storage before storing in Firestore
+      if (entryToSave.imageUri && (entryToSave.imageUri.startsWith('file:') || entryToSave.imageUri.startsWith('content:'))) {
+        try {
+          const cloudUrl = await CloudStorageService.uploadMealPhoto(uid, entryToSave.imageUri);
+          if (cloudUrl && cloudUrl.startsWith('http')) {
+            await ImageCacheService.registerMapping(cloudUrl, entryToSave.imageUri);
+            entryToSave.imageUri = cloudUrl;
+          } else {
+            // Do not store a local device path in Firestore, as it cannot be loaded by other devices
+            entryToSave.imageUri = undefined;
+          }
+        } catch {
+          entryToSave.imageUri = undefined;
+        }
+      }
+
       const entryRef = doc(db, 'users', uid, 'entries', entry.id);
-      await setDoc(entryRef, sanitizeForFirestore(entry));
+      await setDoc(entryRef, sanitizeForFirestore(entryToSave));
     } catch (err) {
       console.warn('CloudDbService.saveEntry error:', err);
     }
@@ -336,38 +355,92 @@ export const CloudDbService = {
   },
 };
 
-// Cloud Storage (Firebase Storage) Service
+// Cloud Storage (Firebase Storage) Service: Direct native streaming upload without JS blob or base64 overhead
 export const CloudStorageService = {
-  async uploadAvatar(uid: string, uri: string): Promise<string> {
+  async uploadAvatar(uid: string, uri: string): Promise<string | null> {
     try {
-      const avatarRef = ref(storage, `avatars/${uid}.jpg`);
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+      const info = await FileSystem.getInfoAsync(uri);
+      if (!info.exists || (info.size ?? 0) === 0) {
+        return null;
+      }
+
+      const remotePath = `avatars/${uid}.jpg`;
+      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o?uploadType=media&name=${encodeURIComponent(remotePath)}`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'image/jpeg',
+      };
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (token) {
+          headers['Authorization'] = `Firebase ${token}`;
+        }
+      } catch {}
+
+      const response = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers,
       });
-      await uploadString(avatarRef, base64, 'base64', { contentType: 'image/jpeg' });
-      const downloadUrl = await getDownloadURL(avatarRef);
-      return downloadUrl;
+
+      if (response.status === 200 || response.status === 201) {
+        const json = JSON.parse(response.body);
+        const downloadToken = json.downloadTokens ? `&token=${json.downloadTokens}` : '';
+        return `https://firebasestorage.googleapis.com/v0/b/${json.bucket}/o/${encodeURIComponent(json.name)}?alt=media${downloadToken}`;
+      }
+      return null;
     } catch (err) {
-      console.warn('CloudStorageService.uploadAvatar error, returning local uri:', err);
-      return uri;
+      console.warn('CloudStorageService.uploadAvatar error:', err);
+      return null;
     }
   },
 
-  async uploadMealPhoto(uid: string, uri: string, base64Data?: string): Promise<string> {
+  async uploadMealPhoto(uid: string, uri: string): Promise<string | null> {
     try {
-      const photoRef = ref(storage, `meal_photos/${uid}/${Date.now()}.jpg`);
-      let base64 = base64Data;
-      if (!base64) {
-        base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+      const currentAuthUid = auth.currentUser?.uid;
+      const targetUid = currentAuthUid || uid;
+      if (!targetUid || targetUid.startsWith('guest_') || targetUid.startsWith('local_')) {
+        return null;
       }
-      await uploadString(photoRef, base64, 'base64', { contentType: 'image/jpeg' });
-      const downloadUrl = await getDownloadURL(photoRef);
-      return downloadUrl;
+
+      const info = await FileSystem.getInfoAsync(uri);
+      if (!info.exists || (info.size ?? 0) === 0) {
+        console.warn('CloudStorageService.uploadMealPhoto: Local file does not exist on disk:', uri);
+        return null;
+      }
+
+      const filename = `meal_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.jpg`;
+      const remotePath = `meal_photos/${targetUid}/${filename}`;
+      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o?uploadType=media&name=${encodeURIComponent(remotePath)}`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'image/jpeg',
+      };
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (token) {
+          headers['Authorization'] = `Firebase ${token}`;
+        }
+      } catch {}
+
+      const response = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers,
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        const json = JSON.parse(response.body);
+        const downloadToken = json.downloadTokens ? `&token=${json.downloadTokens}` : '';
+        const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${json.bucket}/o/${encodeURIComponent(json.name)}?alt=media${downloadToken}`;
+        return downloadUrl;
+      } else {
+        console.warn('CloudStorageService.uploadMealPhoto: direct upload failed with status', response.status, response.body);
+        return null;
+      }
     } catch (err) {
-      console.warn('CloudStorageService.uploadMealPhoto error, returning local uri:', err);
-      return uri;
+      console.warn('CloudStorageService.uploadMealPhoto error:', err);
+      return null;
     }
   },
 };

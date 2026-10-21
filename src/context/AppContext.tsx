@@ -4,8 +4,10 @@ import { FoodEntry, UserProfile, DaySummary, MonthSummary, ProgressMetrics } fro
 import { StorageService } from '../services/storage';
 import { AuthService, CloudDbService, CloudStorageService, auth } from '../services/firebase';
 import { calculateDailyTarget } from '../constants/guidelines';
-import { classifyFiberType, estimateFiberSplit } from '../constants/keywords';
+import { classifyFiberType, estimateFiberSplit, getFiberTagFromGrams } from '../constants/keywords';
 import { LIGHT_THEME, DARK_THEME, ThemeColors } from '../constants/theme';
+import { ImageCacheService } from '../services/imageCache';
+import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -61,6 +63,86 @@ function getTodayStr(): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Reconciles cloud entries from Firestore and local entries on this device.
+ * Ensures local meal photos are uploaded to Firebase Cloud Storage,
+ * mapped to local permanent cache, and remote photos are prefetched.
+ */
+async function reconcileEntriesWithCloud(
+  uid: string,
+  cloudEntries: FoodEntry[],
+  localEntries: FoodEntry[]
+): Promise<FoodEntry[]> {
+  const mergedMap = new Map<string, FoodEntry>();
+
+  for (const cEntry of cloudEntries) {
+    mergedMap.set(cEntry.id, { ...cEntry });
+  }
+
+  for (const lEntry of localEntries) {
+    const existing = mergedMap.get(lEntry.id);
+    if (!existing) {
+      // New local entry not yet in cloud: upload its photo (if local) and save to cloud
+      let entryToUpload: FoodEntry = { ...lEntry };
+      if (entryToUpload.imageUri && (entryToUpload.imageUri.startsWith('file:') || entryToUpload.imageUri.startsWith('content:'))) {
+        try {
+          const cloudUrl = await CloudStorageService.uploadMealPhoto(uid, entryToUpload.imageUri);
+          if (cloudUrl && cloudUrl.startsWith('http')) {
+            await ImageCacheService.registerMapping(cloudUrl, entryToUpload.imageUri);
+            entryToUpload.imageUri = cloudUrl;
+          }
+        } catch (e) {
+          console.warn('reconcileEntriesWithCloud: upload error for new entry', e);
+        }
+      }
+      await CloudDbService.saveEntry(uid, entryToUpload);
+      mergedMap.set(entryToUpload.id, entryToUpload);
+    } else {
+      // Entry exists in both cloud and local.
+      const cloudHasHttp = existing.imageUri && existing.imageUri.startsWith('http');
+      const localHasFile = lEntry.imageUri && (lEntry.imageUri.startsWith('file:') || lEntry.imageUri.startsWith('content:'));
+
+      if (!cloudHasHttp && localHasFile) {
+        // Cloud has missing or dead image, but this device has the actual file: upload it now!
+        try {
+          const cloudUrl = await CloudStorageService.uploadMealPhoto(uid, lEntry.imageUri!);
+          if (cloudUrl && cloudUrl.startsWith('http')) {
+            await ImageCacheService.registerMapping(cloudUrl, lEntry.imageUri!);
+            existing.imageUri = cloudUrl;
+            await CloudDbService.saveEntry(uid, existing);
+          }
+        } catch (e) {
+          console.warn('reconcileEntriesWithCloud: upload error for existing entry', e);
+        }
+      } else if (cloudHasHttp && localHasFile) {
+        // Both exist: register the local file as cache for the cloud URL
+        await ImageCacheService.registerMapping(existing.imageUri!, lEntry.imageUri!);
+      }
+    }
+  }
+
+  const result = Array.from(mergedMap.values());
+  result.sort((a, b) => b.timestamp - a.timestamp);
+
+  // Proactively pre-cache remote images in background for smooth instant viewing,
+  // and sanitize any foreign local paths that don't exist on this device
+  const docDir = FileSystem.documentDirectory ?? '';
+  const cacheDir = FileSystem.cacheDirectory ?? '';
+
+  for (const item of result) {
+    if (item.imageUri && item.imageUri.startsWith('http')) {
+      ImageCacheService.getCachedImageUri(item.imageUri).catch(() => {});
+    } else if (item.imageUri && item.imageUri.startsWith('file:')) {
+      const isCurrentDevice = (docDir && item.imageUri.startsWith(docDir)) || (cacheDir && item.imageUri.startsWith(cacheDir));
+      if (!isCurrentDevice) {
+        item.imageUri = undefined;
+      }
+    }
+  }
+
+  return result;
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
@@ -86,6 +168,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Load stored data and theme on startup + listen to Firebase Auth
   useEffect(() => {
     async function loadData() {
+      await ImageCacheService.init();
+
       const storedTheme = await AsyncStorage.getItem('@fibersnap_theme_mode');
       if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
         setThemeModeState(storedTheme);
@@ -132,18 +216,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
           const cloudEntries = await CloudDbService.loadEntries(fbUser.uid);
           const localEntries = await StorageService.getEntries();
-          const existingIds = new Set(cloudEntries.map((e) => e.id));
+          const syncedEntries = await reconcileEntriesWithCloud(fbUser.uid, cloudEntries, localEntries);
 
-          for (const entry of localEntries) {
-            if (!existingIds.has(entry.id)) {
-              await CloudDbService.saveEntry(fbUser.uid, entry);
-              cloudEntries.push(entry);
-            }
-          }
-
-          cloudEntries.sort((a, b) => b.timestamp - a.timestamp);
-          setEntries(cloudEntries);
-          await StorageService.saveEntries(cloudEntries);
+          setEntries(syncedEntries);
+          await StorageService.saveEntries(syncedEntries);
         } catch (err) {
           console.warn('Error hydrating data from Firebase:', err);
         }
@@ -167,18 +243,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const cloudEntries = await CloudDbService.loadEntries(fbUser.uid);
       const localEntries = await StorageService.getEntries();
-      const existingIds = new Set(cloudEntries.map((e) => e.id));
+      const syncedEntries = await reconcileEntriesWithCloud(fbUser.uid, cloudEntries, localEntries);
 
-      for (const entry of localEntries) {
-        if (!existingIds.has(entry.id)) {
-          await CloudDbService.saveEntry(fbUser.uid, entry);
-          cloudEntries.push(entry);
-        }
-      }
-
-      cloudEntries.sort((a, b) => b.timestamp - a.timestamp);
-      setEntries(cloudEntries);
-      await StorageService.saveEntries(cloudEntries);
+      setEntries(syncedEntries);
+      await StorageService.saveEntries(syncedEntries);
     } catch (err) {
       console.warn('syncWithCloud error:', err);
     }
@@ -346,22 +414,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     tag?: 'soluble' | 'insoluble' | 'mixed';
     imageUri?: string;
   }) => {
-    const determinedTag = data.tag || classifyFiberType(data.name);
     let sol = data.solubleGrams;
     let ins = data.insolubleGrams;
 
     if (sol === undefined || ins === undefined) {
-      const split = estimateFiberSplit(data.totalGrams, determinedTag);
+      const initialTag = data.tag || classifyFiberType(data.name);
+      const split = estimateFiberSplit(data.totalGrams, initialTag);
       sol = split.solubleGrams;
       ins = split.insolubleGrams;
     }
 
-    let cloudImageUri = data.imageUri;
+    const determinedTag = getFiberTagFromGrams(sol, ins);
+
+    let finalImageUri = data.imageUri;
+    const effectiveUid = auth.currentUser?.uid || (profile.uid && !profile.uid.startsWith('guest_') && !profile.uid.startsWith('local_') ? profile.uid : null);
+
     if (data.imageUri && (data.imageUri.startsWith('file:') || data.imageUri.startsWith('content:'))) {
-      try {
-        cloudImageUri = await CloudStorageService.uploadMealPhoto(profile.uid, data.imageUri);
-      } catch (e) {
-        console.warn('Failed to upload meal photo to storage:', e);
+      // 1. Permanently cache local photo in app document storage so it is never purged by the OS
+      const persistentLocalUri = await ImageCacheService.cacheLocalPhoto(data.imageUri);
+      finalImageUri = persistentLocalUri;
+
+      // 2. Upload to Firebase Cloud Storage if authenticated
+      if (effectiveUid) {
+        try {
+          const uploadedCloudUrl = await CloudStorageService.uploadMealPhoto(effectiveUid, persistentLocalUri);
+          if (uploadedCloudUrl && uploadedCloudUrl.startsWith('http')) {
+            // 3. Register mapping: cloud URL -> permanent local cached file
+            await ImageCacheService.registerMapping(uploadedCloudUrl, persistentLocalUri);
+            finalImageUri = uploadedCloudUrl;
+          }
+        } catch (e) {
+          console.warn('Failed to upload meal photo to storage:', e);
+        }
       }
     }
 
@@ -376,15 +460,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       tag: determinedTag,
       dateStr: getTodayStr(),
       timestamp: Date.now(),
-      imageUri: cloudImageUri,
+      imageUri: finalImageUri,
     };
 
     const updated = await StorageService.addEntry(newEntry);
     setEntries(updated);
 
     // Sync to Cloud Firestore
-    if (profile.uid && !profile.uid.startsWith('guest_') && !profile.uid.startsWith('local_')) {
-      await CloudDbService.saveEntry(profile.uid, newEntry);
+    if (effectiveUid) {
+      await CloudDbService.saveEntry(effectiveUid, newEntry);
     }
   };
 
@@ -430,9 +514,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     let finalUpdates = { ...updates };
     if (updates.avatarUri && (updates.avatarUri.startsWith('file:') || updates.avatarUri.startsWith('content:'))) {
+      // 1. Permanently cache local avatar in app document storage
+      const persistentAvatarUri = await ImageCacheService.cacheLocalPhoto(updates.avatarUri);
+      finalUpdates.avatarUri = persistentAvatarUri;
+
+      // 2. Upload to Firebase Cloud Storage
       try {
-        const cloudAvatar = await CloudStorageService.uploadAvatar(profile.uid, updates.avatarUri);
-        finalUpdates.avatarUri = cloudAvatar;
+        const cloudAvatar = await CloudStorageService.uploadAvatar(profile.uid, persistentAvatarUri);
+        if (cloudAvatar && cloudAvatar.startsWith('http')) {
+          // 3. Register mapping: cloud URL -> permanent local cached file
+          await ImageCacheService.registerMapping(cloudAvatar, persistentAvatarUri);
+          finalUpdates.avatarUri = cloudAvatar;
+        }
       } catch (e) {
         console.warn('Failed to upload avatar to cloud storage:', e);
       }
@@ -473,6 +566,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 1. Purge all food log entries locally and in cloud
     await StorageService.saveEntries([]);
     setEntries([]);
+    await ImageCacheService.clearCache();
 
     if (profile.uid && !profile.uid.startsWith('guest_') && !profile.uid.startsWith('local_')) {
       await CloudDbService.clearEntries(profile.uid);
@@ -512,6 +606,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await AuthService.signOut();
     }
     await StorageService.clearAllData();
+    await ImageCacheService.clearCache();
     const freshProfile: UserProfile = {
       uid: 'guest_local',
       email: null,
