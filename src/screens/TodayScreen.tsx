@@ -27,6 +27,7 @@ import { AiConsentModal } from '../components/AiConsentModal';
 import { EditEntryModal } from '../components/EditEntryModal';
 import { ConfettiCelebration } from '../components/ConfettiCelebration';
 import { scanMealPhoto } from '../services/geminiVision';
+import { StorageService } from '../services/storage';
 import { FoodEntry, GeminiScanResult } from '../types';
 import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
 
@@ -113,6 +114,13 @@ export const TodayScreen: React.FC = () => {
   const handleScanCamera = async () => {
     setLogChoiceModalVisible(false);
 
+    // Free meal scan is strictly ONCE for a lifetime
+    const deviceUsed = await StorageService.hasUsedLifetimeScan();
+    if (!profile.isPlusSubscriber && ((profile.aiScanCount || 0) >= 1 || deviceUsed)) {
+      setPaywallVisible(true);
+      return;
+    }
+
     // Apple Guideline: Check AI consent first
     if (!profile.hasGivenAiConsent) {
       setPendingScanSource('camera');
@@ -151,6 +159,7 @@ export const TodayScreen: React.FC = () => {
 
         try {
           const result = await scanMealPhoto(asset.base64 || '', asset.uri);
+          await StorageService.markLifetimeScanUsed();
           updateProfile({ aiScanCount: (profile.aiScanCount || 0) + 1 });
           setScanResult(result);
           setScanLoading(false);
@@ -175,6 +184,13 @@ export const TodayScreen: React.FC = () => {
   // AI Gallery Scan Handler (Direct gallery launch)
   const handleScanGallery = async () => {
     setLogChoiceModalVisible(false);
+
+    // Free meal scan is strictly ONCE for a lifetime
+    const deviceUsed = await StorageService.hasUsedLifetimeScan();
+    if (!profile.isPlusSubscriber && ((profile.aiScanCount || 0) >= 1 || deviceUsed)) {
+      setPaywallVisible(true);
+      return;
+    }
 
     // Apple Guideline: Check AI consent first
     if (!profile.hasGivenAiConsent) {
@@ -212,6 +228,7 @@ export const TodayScreen: React.FC = () => {
         setScanLoading(true);
         try {
           const result = await scanMealPhoto(asset.base64 || '', asset.uri);
+          await StorageService.markLifetimeScanUsed();
           updateProfile({ aiScanCount: (profile.aiScanCount || 0) + 1 });
           setScanResult(result);
           setScanLoading(false);
@@ -555,7 +572,11 @@ export const TodayScreen: React.FC = () => {
               </Text>
 
               <Text style={[styles.modalSub, { color: colors.inkSoft }]}>
-                Snap or select a meal photo to calculate dietary fiber automatically using Gemini AI Vision.
+                {!profile.isPlusSubscriber && (profile.aiScanCount || 0) === 0
+                  ? 'You have 1 complimentary lifetime meal scan included on the free tier. Unlimited scans require FiberSnap Plus.'
+                  : !profile.isPlusSubscriber
+                  ? 'Your one-time lifetime free meal scan has been used. Subscribe to FiberSnap Plus for unlimited AI scans.'
+                  : 'Snap or select a meal photo to calculate dietary fiber automatically using Gemini AI Vision.'}
               </Text>
 
               {/* Option 1: Take Photo / Camera */}

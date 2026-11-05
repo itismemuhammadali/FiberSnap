@@ -73,10 +73,10 @@ export const AboutScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* Daily Targets by Sex and Age */}
+        {/* Personalized Daily Targets: Standard, Weight-Adjusted & Custom */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.cardHeaderRow}>
-            <Text style={[styles.cardTitle, { color: colors.ink }]}>Daily Targets by Sex & Age</Text>
+            <Text style={[styles.cardTitle, { color: colors.ink }]}>Personalized Daily Targets</Text>
             <TouchableOpacity
               onPress={() => setInfoModalTopic('targets')}
               style={[styles.infoBtn, { backgroundColor: colors.surface2 }]}
@@ -87,22 +87,36 @@ export const AboutScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
           <Text style={[styles.bodyText, { color: colors.inkSoft, marginBottom: 12 }]}>
-            Daily goals are personalized using official Adequate Intake (AI) dietary guidelines based on biological sex and age:
+            FiberSnap supports three clinically grounded goal methods to match your individual biology and wellness objectives:
           </Text>
 
           <View style={[styles.targetTable, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
             <View style={[styles.targetRow, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.targetRowLabel, { color: colors.ink }]}>Ages 19–50 (Adults)</Text>
-              <Text style={[styles.targetRowVal, { color: colors.accentDeep }]}>Women: 25g · Men: 38g / day</Text>
+              <Text style={[styles.targetRowLabel, { color: colors.ink }]}>1. Standard Guidelines (Sex & Age)</Text>
+              <Text style={[styles.targetRowVal, { color: colors.accentDeep }]}>Ages 19–50: Women 25g · Men 38g / day</Text>
+              <Text style={[styles.targetRowVal, { color: colors.accentDeep, marginTop: 1 }]}>Ages 51+: Women 21g · Men 30g / day</Text>
+              <Text style={[styles.targetRowSub, { color: colors.inkSoft, marginTop: 4 }]}>
+                Official Adequate Intake (AI) benchmark based on median population energy needs.
+              </Text>
             </View>
-            <View style={styles.targetRow}>
-              <Text style={[styles.targetRowLabel, { color: colors.ink }]}>Ages 51+ (Mature Adults)</Text>
-              <Text style={[styles.targetRowVal, { color: colors.accentDeep }]}>Women: 21g · Men: 30g / day</Text>
+            <View style={[styles.targetRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.targetRowLabel, { color: colors.ink }]}>2. Body Weight-Tailored Goal</Text>
+              <Text style={[styles.targetRowVal, { color: colors.accentDeep }]}>~0.4g fiber per kg of body weight</Text>
+              <Text style={[styles.targetRowSub, { color: colors.inkSoft, marginTop: 4 }]}>
+                Scales fiber target to metabolic body mass and caloric intake, rounded up to the nearest whole gram.
+              </Text>
+            </View>
+            <View style={[styles.targetRow, { borderBottomWidth: 0 }]}>
+              <Text style={[styles.targetRowLabel, { color: colors.ink }]}>3. Custom Daily Target</Text>
+              <Text style={[styles.targetRowVal, { color: colors.accentDeep }]}>User or Clinician Defined</Text>
+              <Text style={[styles.targetRowSub, { color: colors.inkSoft, marginTop: 4 }]}>
+                Full flexibility to set any specific daily gram goal recommended by your physician, dietitian, or protocol.
+              </Text>
             </View>
           </View>
 
           <Text style={[styles.cardCitationText, { color: colors.inkFaint, marginTop: 10 }]}>
-            Citation: Institute of Medicine (IOM) Dietary Reference Intakes (DRI), Food and Nutrition Board, National Academies Press (2005).
+            Citations: Institute of Medicine DRI (2005); Howarth et al., Nutrition Reviews (2001); Slavin, Nutrition (2005).
           </Text>
         </View>
 
@@ -194,7 +208,7 @@ export const AboutScreen: React.FC = () => {
             <View style={{ flex: 1 }}>
               <Text style={[styles.tierTitle, { color: colors.ink }]}>Free Tier</Text>
               <Text style={[styles.tierDesc, { color: colors.inkSoft }]}>
-                Full USDA food search & manual logging, custom entries, daily goal + progress ring, soluble/insoluble split, 7-day trend, plus one-time AI camera scan trial.
+                Full USDA food search & manual logging, custom entries, daily goal + progress ring, soluble/insoluble split, 7-day trend, plus one (1) single lifetime free AI meal scan.
               </Text>
             </View>
             <Text style={[styles.tierBadge, { color: colors.accentDeep }]}>FREE</Text>
@@ -254,7 +268,7 @@ export const AboutScreen: React.FC = () => {
               </View>
               <Text style={[styles.modalTitle, { color: colors.ink, flex: 1 }]}>
                 {infoModalTopic === 'targets'
-                  ? 'Daily Targets Science'
+                  ? 'Daily Target Methodologies'
                   : 'Soluble vs. Insoluble Science'}
               </Text>
               <TouchableOpacity
@@ -275,15 +289,40 @@ export const AboutScreen: React.FC = () => {
               {infoModalTopic === 'targets' ? (
                 <>
                   <Text style={[styles.infoParagraph, { color: colors.ink }]}>
-                    Daily dietary fiber intake standards are formulated by the Institute of Medicine (IOM) and Food and Nutrition Board:
+                    FiberSnap provides three evidence-backed target methodologies:
                   </Text>
-                  <Text style={[styles.infoParagraph, { color: colors.inkSoft, marginTop: 8 }]}>
-                    Based on an Adequate Intake (AI) benchmark of 14g per 1,000 kcal consumed, adult recommendations scale by median biological caloric expenditure: 38g for men and 25g for women under 50, and 30g for men and 21g for women age 51 and older.
-                  </Text>
+
+                  <View style={[styles.guidelineGridBox, { backgroundColor: colors.surface2, marginTop: 10 }]}>
+                    <Text style={[styles.gridBoxTitle, { color: colors.ink }]}>1. Standard Intake Guidelines (Sex & Age):</Text>
+                    <Text style={[styles.gridBoxRow, { color: colors.inkSoft }]}>
+                      Formulated by the Institute of Medicine (IOM) using an Adequate Intake (AI) benchmark of 14g per 1,000 kcal consumed. Adult targets scale by median metabolic caloric expenditure: 38g for men and 25g for women under 50; 30g for men and 21g for women age 51+.
+                    </Text>
+                  </View>
+
+                  <View style={[styles.guidelineGridBox, { backgroundColor: colors.surface2, marginTop: 10 }]}>
+                    <Text style={[styles.gridBoxTitle, { color: colors.ink }]}>2. Body Weight-Tailored Goal:</Text>
+                    <Text style={[styles.gridBoxRow, { color: colors.inkSoft }]}>
+                      Calculated at ~0.4g of dietary fiber per kilogram of body weight (rounded up to the nearest whole gram). Grounded in metabolic and clinical research (Howarth et al., Slavin et al.), this method aligns daily fiber intake proportionally with individual body mass and energy requirements.
+                    </Text>
+                  </View>
+
+                  <View style={[styles.guidelineGridBox, { backgroundColor: colors.surface2, marginTop: 10 }]}>
+                    <Text style={[styles.gridBoxTitle, { color: colors.ink }]}>3. Custom Target:</Text>
+                    <Text style={[styles.gridBoxRow, { color: colors.inkSoft }]}>
+                      Enables users to input any specific daily gram goal prescribed by their doctor, registered dietitian, or tailored protocol (e.g., irritable bowel protocols, athletic fueling, or clinical management).
+                    </Text>
+                  </View>
+
                   <View style={[styles.guidelineGridBox, { backgroundColor: colors.surface2, marginTop: 12 }]}>
-                    <Text style={[styles.gridBoxTitle, { color: colors.ink }]}>Primary Scientific Citation:</Text>
+                    <Text style={[styles.gridBoxTitle, { color: colors.ink }]}>Primary Scientific Citations:</Text>
                     <Text style={[styles.gridBoxRow, { color: colors.inkSoft }]}>
                       • <Text style={{ fontWeight: '700', color: colors.ink }}>Institute of Medicine (IOM):</Text> Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, and Amino Acids (National Academies Press, 2005).
+                    </Text>
+                    <Text style={[styles.gridBoxRow, { color: colors.inkSoft, marginTop: 4 }]}>
+                      • <Text style={{ fontWeight: '700', color: colors.ink }}>Howarth et al. (Nutr Rev, 2001):</Text> Dietary Fiber and Weight Regulation.
+                    </Text>
+                    <Text style={[styles.gridBoxRow, { color: colors.inkSoft, marginTop: 4 }]}>
+                      • <Text style={{ fontWeight: '700', color: colors.ink }}>Slavin, J. L. (Nutrition, 2005):</Text> Dietary fiber and body weight.
                     </Text>
                   </View>
                 </>
@@ -414,6 +453,10 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '800',
     marginTop: 2,
+  },
+  targetRowSub: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   pillarRow: {
     flexDirection: 'row',

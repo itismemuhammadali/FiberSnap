@@ -268,12 +268,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return systemScheme === 'dark' ? DARK_THEME : LIGHT_THEME;
   }, [themeMode, systemScheme]);
 
-  // Compute Daily Target
+  // Compute Daily Target (rounded up to nearest gram)
   const dailyGoal = useMemo(() => {
     if (profile.useCustomTarget && profile.customTargetGrams > 0) {
-      return profile.customTargetGrams;
+      return Math.ceil(profile.customTargetGrams);
     }
-    return calculateDailyTarget(profile.biologicalSex, profile.age, profile.weightKg, profile.goalType);
+    const target = calculateDailyTarget(profile.biologicalSex, profile.age, profile.weightKg, profile.goalType);
+    return Math.ceil(target);
   }, [profile]);
 
   // Compute Today's logs
@@ -545,6 +546,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const handleAiScanAttempt = (onProceed: () => void) => {
+    if (!profile.isPlusSubscriber && (profile.aiScanCount || 0) >= 1) {
+      setPaywallVisible(true);
+      return;
+    }
     onProceed();
   };
 
@@ -572,7 +577,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await CloudDbService.clearEntries(profile.uid);
     }
 
-    // 2. Reset health goals, weight, streaks, AI scans, and onboarding while preserving account credentials (Name, Email, UID)
+    // 2. Reset health goals, weight, streaks, and onboarding while preserving account credentials and lifetime scan usage
     const resetProfile: UserProfile = {
       uid: profile.uid,
       email: profile.email,
@@ -586,7 +591,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       customTargetGrams: 28,
       useCustomTarget: false,
       isPlusSubscriber: profile.isPlusSubscriber,
-      aiScanCount: 0,
+      aiScanCount: profile.aiScanCount || 0, // Strict lifetime count preserved
       hasCompletedOnboarding: false,
       hasGivenAiConsent: false,
       createdAt: profile.createdAt || Date.now(),
@@ -601,11 +606,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const clearAllData = async () => {
+    const isDeviceScanUsed = await StorageService.hasUsedLifetimeScan();
     if (profile.uid && !profile.uid.startsWith('guest_') && !profile.uid.startsWith('local_')) {
       await CloudDbService.clearEntries(profile.uid);
       await AuthService.signOut();
     }
     await StorageService.clearAllData();
+    if (isDeviceScanUsed) {
+      await StorageService.markLifetimeScanUsed();
+    }
     await ImageCacheService.clearCache();
     const freshProfile: UserProfile = {
       uid: 'guest_local',
@@ -616,7 +625,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       customTargetGrams: 28,
       useCustomTarget: false,
       isPlusSubscriber: false,
-      aiScanCount: 0,
+      aiScanCount: isDeviceScanUsed ? 1 : 0,
       createdAt: Date.now(),
     };
     setProfile(freshProfile);
@@ -629,7 +638,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.warn('AuthService signOut error:', e);
     }
+    const isDeviceScanUsed = await StorageService.hasUsedLifetimeScan();
     await StorageService.clearSession();
+    if (isDeviceScanUsed) {
+      await StorageService.markLifetimeScanUsed();
+    }
     const freshProfile: UserProfile = {
       uid: 'guest_local_user',
       email: null,
@@ -639,7 +652,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       customTargetGrams: 28,
       useCustomTarget: false,
       isPlusSubscriber: false,
-      aiScanCount: 0,
+      aiScanCount: isDeviceScanUsed ? 1 : 0,
       hasCompletedOnboarding: false,
       hasGivenAiConsent: false,
       createdAt: Date.now(),

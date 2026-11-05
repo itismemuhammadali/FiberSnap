@@ -243,7 +243,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
               <View style={styles.tagRow}>
                 {(['mixed', 'soluble', 'insoluble'] as FiberTag[]).map((t) => {
                   const isActive = tag === t;
-                  const label = t === 'mixed' ? 'Balanced' : t === 'soluble' ? 'Soluble' : 'Insoluble';
+                  const label = t === 'mixed' ? 'Mixed' : t === 'soluble' ? 'Soluble' : 'Insoluble';
                   return (
                     <TouchableOpacity
                       key={t}

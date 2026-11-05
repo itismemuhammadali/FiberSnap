@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   USDA_CACHE: '@fibersnap_usda_cache',
   AUTH_TOKEN: '@fibersnap_auth_token',
   IS_LOGGED_IN: '@fibersnap_is_logged_in',
+  LIFETIME_SCAN_USED: '@fibersnap_lifetime_scan_used',
 };
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -25,17 +26,41 @@ export const DEFAULT_PROFILE: UserProfile = {
 };
 
 export const StorageService = {
+  async hasUsedLifetimeScan(): Promise<boolean> {
+    try {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.LIFETIME_SCAN_USED);
+      return val === 'true';
+    } catch {
+      return false;
+    }
+  },
+
+  async markLifetimeScanUsed(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LIFETIME_SCAN_USED, 'true');
+    } catch (e) {
+      console.warn('Failed to record lifetime scan:', e);
+    }
+  },
+
   async getProfile(): Promise<UserProfile> {
     try {
+      const isDeviceScanUsed = await this.hasUsedLifetimeScan();
       const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
       if (data) {
         const loaded: UserProfile = { ...DEFAULT_PROFILE, ...JSON.parse(data) };
         if (loaded.email && loaded.email.trim().toLowerCase() === 'muhammadali2025222@gmail.com') {
           loaded.isPlusSubscriber = true;
         }
+        if (isDeviceScanUsed && (loaded.aiScanCount || 0) < 1) {
+          loaded.aiScanCount = 1;
+        }
         return loaded;
       }
-      return DEFAULT_PROFILE;
+      return {
+        ...DEFAULT_PROFILE,
+        aiScanCount: isDeviceScanUsed ? 1 : 0,
+      };
     } catch (error) {
       console.warn('Failed to load profile from storage:', error);
       return DEFAULT_PROFILE;
@@ -45,6 +70,9 @@ export const StorageService = {
   async saveProfile(profile: UserProfile): Promise<void> {
     try {
       const toSave = { ...profile };
+      if (toSave.aiScanCount && toSave.aiScanCount >= 1) {
+        await this.markLifetimeScanUsed();
+      }
       if (toSave.email && toSave.email.trim().toLowerCase() === 'muhammadali2025222@gmail.com') {
         toSave.isPlusSubscriber = true;
       }

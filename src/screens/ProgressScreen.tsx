@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { TopBar } from '../components/TopBar';
-import { SplitBar } from '../components/SplitBar';
 import { RADIUS, SHADOWS, FONTS } from '../constants/theme';
 
 export const ProgressScreen: React.FC = () => {
@@ -182,16 +181,6 @@ export const ProgressScreen: React.FC = () => {
       4: '#2C6B39',         // Tier 4: Rich deep forest green (100% goal)
     };
   }, [colors.isDark]);
-
-  // 30-day Soluble / Insoluble sum
-  const split30 = useMemo(() => {
-    const totalSol = daySummaries30.reduce((acc, d) => acc + d.solubleGrams, 0);
-    const totalIns = daySummaries30.reduce((acc, d) => acc + d.insolubleGrams, 0);
-    return {
-      soluble: Math.round(totalSol * 10) / 10,
-      insoluble: Math.round(totalIns * 10) / 10,
-    };
-  }, [daySummaries30]);
 
   // Streak representation
   const streakText = metrics.currentStreak > 0
@@ -473,13 +462,6 @@ export const ProgressScreen: React.FC = () => {
             </View>
           </View>
         </View>
-
-        {/* CARD 4: Soluble vs. Insoluble 30-Day Ratio */}
-        <SplitBar
-          solubleGrams={split30.soluble}
-          insolubleGrams={split30.insoluble}
-          showCardWrapper={true}
-        />
       </ScrollView>
     </View>
   );

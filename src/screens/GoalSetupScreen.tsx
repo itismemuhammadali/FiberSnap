@@ -31,7 +31,7 @@ export const GoalSetupScreen: React.FC = () => {
   const [age, setAge] = useState(profile.age ? profile.age.toString() : '28');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>(profile.weightUnit || 'kg');
   const [weight, setWeight] = useState(
-    profile.weightKg
+    profile.goalType === 'weight_adjusted' && !profile.useCustomTarget && profile.weightKg
       ? (profile.weightUnit === 'lbs' ? Math.round(profile.weightKg * 2.20462).toString() : profile.weightKg.toString())
       : ''
   );
@@ -59,9 +59,9 @@ export const GoalSetupScreen: React.FC = () => {
   const customNum = parseFloat(customGrams);
   const activeGoal =
     goalType === 'custom'
-      ? (!isNaN(customNum) && customNum > 0 ? customNum : 0)
+      ? (!isNaN(customNum) && customNum > 0 ? Math.ceil(customNum) : 0)
       : goalType === 'weight_adjusted' && weightInKg
-      ? weightAdjustedGrams
+      ? Math.ceil(weightAdjustedGrams)
       : standardGrams;
 
   const sexOptions: { label: string; value: BiologicalSex; icon: 'female' | 'male' }[] = [
@@ -106,15 +106,15 @@ export const GoalSetupScreen: React.FC = () => {
     try {
       const finalGrams =
         goalType === 'custom'
-          ? Math.round(parseFloat(customGrams))
+          ? Math.ceil(parseFloat(customGrams))
           : goalType === 'weight_adjusted' && weightInKg
-          ? weightAdjustedGrams
+          ? Math.ceil(weightAdjustedGrams)
           : standardGrams;
 
       await updateProfile({
         biologicalSex: sex,
         age: parsedAge,
-        weightKg: weightInKg ? Math.round(weightInKg * 10) / 10 : undefined,
+        weightKg: goalType === 'weight_adjusted' && weightInKg ? Math.round(weightInKg * 10) / 10 : undefined,
         weightUnit,
         goalType,
         useCustomTarget: goalType === 'custom',
@@ -238,9 +238,9 @@ export const GoalSetupScreen: React.FC = () => {
             <View style={styles.targetBigRow}>
               <Text style={[styles.targetBigNum, { color: colors.accentDeep }]}>
                 {goalType === 'custom'
-                  ? (activeGoal > 0 ? Math.round(activeGoal) : '—')
+                  ? (activeGoal > 0 ? activeGoal : '—')
                   : goalType === 'weight_adjusted'
-                  ? (weightInKg ? (typeof activeGoal === 'number' ? activeGoal.toFixed(1) : activeGoal) : '—')
+                  ? (weightInKg ? activeGoal : '—')
                   : Math.round(activeGoal)}
               </Text>
               <Text style={[styles.targetBigUnit, { color: colors.accentDeep }]}>g / day</Text>
@@ -250,7 +250,7 @@ export const GoalSetupScreen: React.FC = () => {
                 ? (activeGoal > 0 ? 'Using your custom personalized daily target.' : 'Enter your custom daily fiber target below.')
                 : goalType === 'weight_adjusted'
                 ? (weightInKg
-                    ? `Body Weight-Tailored: Scaled to ${weight}${weightUnit} body weight (~0.4g/kg).`
+                    ? `Body Weight-Tailored: Scaled to ${weight}${weightUnit} body weight (~0.4g/kg, rounded up to the nearest g).`
                     : 'Body Weight-Tailored: Enter your weight below to calculate your goal.')
                 : `Standard Target (Recommended) for ${sex === 'female' ? 'women' : 'men'} aged ${validAge}.`}
             </Text>
@@ -398,7 +398,7 @@ export const GoalSetupScreen: React.FC = () => {
 
                 {weightInKg ? (
                   <Text style={[styles.weightHint, { color: colors.accentDeep }]}>
-                    Personalized goal: {typeof weightAdjustedGrams === 'number' ? weightAdjustedGrams.toFixed(1) : weightAdjustedGrams}g/day (0.4g/kg dietary guideline).
+                    Personalized goal: {weightAdjustedGrams}g/day (0.4g/kg dietary guideline, rounded up to the nearest g).
                   </Text>
                 ) : (
                   <Text style={[styles.weightHint, { color: colors.inkSoft }]}>
@@ -423,7 +423,11 @@ export const GoalSetupScreen: React.FC = () => {
                     borderColor: goalType === 'standard' ? colors.accentDeep : colors.border,
                   },
                 ]}
-                onPress={() => setGoalType('standard')}
+                onPress={() => {
+                  setGoalType('standard');
+                  setWeight('');
+                  setCustomGrams('');
+                }}
                 activeOpacity={0.8}
               >
                 <View style={styles.methodHeaderRow}>
@@ -464,7 +468,10 @@ export const GoalSetupScreen: React.FC = () => {
                     marginTop: 10,
                   },
                 ]}
-                onPress={() => setGoalType('weight_adjusted')}
+                onPress={() => {
+                  setGoalType('weight_adjusted');
+                  setCustomGrams('');
+                }}
                 activeOpacity={0.8}
               >
                 <View style={styles.methodHeaderRow}>
@@ -487,14 +494,14 @@ export const GoalSetupScreen: React.FC = () => {
                         </View>
                       </View>
                       <Text style={[styles.methodSubtitle, { color: colors.inkSoft }]}>
-                        {weightInKg
-                          ? `Calculated at ~0.4g fiber/kg for your ${weight}${weightUnit} body weight.`
-                          : 'Scales daily fiber to ~0.4g per kg to match your metabolic mass.'}
+                        {goalType === 'weight_adjusted' && weightInKg
+                          ? `Calculated at ~0.4g fiber/kg for your ${weight}${weightUnit} body weight, rounded up to the nearest g.`
+                          : 'Scales daily fiber to ~0.4g per kg to match your metabolic mass, rounded up to the nearest g.'}
                       </Text>
                     </View>
                   </View>
                   <Text style={[styles.methodGrams, { color: colors.accentDeep }]}>
-                    {weightInKg ? `${typeof weightAdjustedGrams === 'number' ? weightAdjustedGrams.toFixed(1) : weightAdjustedGrams}g` : 'Enter Weight'}
+                    {goalType === 'weight_adjusted' && weightInKg ? `${weightAdjustedGrams}g` : 'Set Weight'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -509,7 +516,10 @@ export const GoalSetupScreen: React.FC = () => {
                     marginTop: 10,
                   },
                 ]}
-                onPress={() => setGoalType('custom')}
+                onPress={() => {
+                  setGoalType('custom');
+                  setWeight('');
+                }}
                 activeOpacity={0.8}
               >
                 <View style={styles.methodHeaderRow}>
@@ -532,7 +542,7 @@ export const GoalSetupScreen: React.FC = () => {
                     </View>
                   </View>
                   <Text style={[styles.methodGrams, { color: colors.accentDeep }]}>
-                    {customGrams.trim() && parseFloat(customGrams) > 0 ? `${Math.round(parseFloat(customGrams))}g` : 'Set Grams'}
+                    {goalType === 'custom' && customGrams.trim() && parseFloat(customGrams) > 0 ? `${Math.ceil(parseFloat(customGrams))}g` : 'Set Grams'}
                   </Text>
                 </View>
               </TouchableOpacity>

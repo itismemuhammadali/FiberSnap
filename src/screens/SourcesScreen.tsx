@@ -69,7 +69,7 @@ export const SourcesScreen: React.FC = () => {
   const [period, setPeriod] = useState<SourcesPeriod>('today');
   const [showAllSources, setShowAllSources] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
-  const [tableCategory, setTableCategory] = useState<'all' | 'veggies' | 'legumes' | 'fruits' | 'seeds' | 'grains'>('all');
+  const [tableCategory, setTableCategory] = useState<'veggies' | 'legumes' | 'fruits' | 'seeds' | 'grains'>('veggies');
 
   // Filter entries based on selected timeframe
   const filteredEntries = useMemo(() => {
@@ -142,7 +142,7 @@ export const SourcesScreen: React.FC = () => {
   // Filter Nutrition Table
   const filteredFoodTable = useMemo(() => {
     return HIGH_FIBER_FOOD_TABLE.filter((f) => {
-      const matchesCat = tableCategory === 'all' || f.category === tableCategory;
+      const matchesCat = f.category === tableCategory;
       const matchesSearch = tableSearch.trim() === '' || f.name.toLowerCase().includes(tableSearch.toLowerCase());
       return matchesCat && matchesSearch;
     });
@@ -367,7 +367,6 @@ export const SourcesScreen: React.FC = () => {
           {/* Table Category Pills */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
             {[
-              { key: 'all', label: 'All Foods' },
               { key: 'veggies', label: 'Vegetables' },
               { key: 'legumes', label: 'Beans & Lentils' },
               { key: 'fruits', label: 'Fruits & Berries' },
@@ -405,10 +404,11 @@ export const SourcesScreen: React.FC = () => {
             </View>
 
             {filteredFoodTable.map((item, i) => {
+              const dynamicItemTag = getFiberTagFromGrams(item.solubleGrams, item.insolubleGrams);
               const tagColor =
-                item.tag === 'soluble'
+                dynamicItemTag === 'soluble'
                   ? colors.soluble
-                  : item.tag === 'insoluble'
+                  : dynamicItemTag === 'insoluble'
                   ? colors.insoluble
                   : colors.accent;
 

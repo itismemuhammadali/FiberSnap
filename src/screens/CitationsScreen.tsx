@@ -223,7 +223,7 @@ export const CitationsScreen: React.FC = () => {
           <Ionicons name="alert-circle-outline" size={20} color={colors.inkSoft} style={{ marginTop: 2 }} />
           <Text style={[styles.disclaimerText, { color: colors.inkSoft }]}>
             <Text style={{ fontWeight: '700', color: colors.ink }}>Medical Disclaimer: </Text>
-            FiberSnap is designed for general wellness guidance and dietary education. If you suffer from irritable bowel syndrome (IBS), inflammatory bowel disease (Crohn's or colitis), or other digestive conditions, always consult a physician or registered dietitian before substantially changing fiber intake.
+            FiberSnap is designed for general wellness guidance and dietary education. If you have any digestive, metabolic, or other chronic health condition, or are otherwise under the care of a physician, always consult a physician or registered dietitian before making significant changes to your fiber intake.
           </Text>
         </View>
       </ScrollView>

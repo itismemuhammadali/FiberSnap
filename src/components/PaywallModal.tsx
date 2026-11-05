@@ -208,7 +208,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
                   Unlimited AI Meal Scans
                 </Text>
                 <Text style={[styles.featureDesc, { color: livelyTheme.inkSoft }]}>
-                  No more weighing or manual searching. Snap a photo and log in seconds.
+                  Unlimited daily meal photo analysis after your one-time lifetime free scan.
                 </Text>
               </View>
             </View>

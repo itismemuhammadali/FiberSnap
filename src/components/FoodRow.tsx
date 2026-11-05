@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { FoodEntry } from '../types';
 import { useApp } from '../context/AppContext';
 import { FONTS } from '../constants/theme';
+import { getFiberTagFromGrams } from '../constants/keywords';
 import { CachedImage } from './CachedImage';
 
 interface FoodRowProps {
@@ -71,7 +72,10 @@ export const FoodRow: React.FC<FoodRowProps> = ({ entry, onDelete, onEdit }) => 
         </Text>
         <Text style={[styles.sub, { color: colors.inkSoft }]} numberOfLines={1}>
           {entry.portion || '1 serving'} •{' '}
-          {entry.tag === 'soluble' ? 'Soluble' : entry.tag === 'insoluble' ? 'Insoluble' : 'Balanced'}
+          {(() => {
+            const tag = getFiberTagFromGrams(entry.solubleGrams, entry.insolubleGrams);
+            return tag === 'soluble' ? 'Soluble' : tag === 'insoluble' ? 'Insoluble' : 'Mixed';
+          })()}
         </Text>
       </TouchableOpacity>
 

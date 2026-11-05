@@ -124,36 +124,13 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <Text style={styles.itemName} numberOfLines={2}>
                   {item.description}
                 </Text>
-                <View style={styles.itemMeta}>
-                  <View
-                    style={[
-                      styles.tagBadge,
-                      item.tag === 'soluble'
-                        ? styles.tagSoluble
-                        : item.tag === 'insoluble'
-                        ? styles.tagInsoluble
-                        : styles.tagMixed,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tagBadgeText,
-                        item.tag === 'soluble'
-                          ? styles.tagTextSoluble
-                          : item.tag === 'insoluble'
-                          ? styles.tagTextInsoluble
-                          : styles.tagTextMixed,
-                      ]}
-                    >
-                      {item.tag.toUpperCase()}
-                    </Text>
-                  </View>
-                  {item.servingSize ? (
+                {item.servingSize ? (
+                  <View style={styles.itemMeta}>
                     <Text style={styles.itemPortion}>
                       {item.servingSize} {item.servingSizeUnit || 'g'}
                     </Text>
-                  ) : null}
-                </View>
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.itemRight}>
@@ -174,7 +151,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                   Try general search terms like "beans", "berries", or "bread".
                 </Text>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       </SafeAreaView>

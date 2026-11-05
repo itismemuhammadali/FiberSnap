@@ -24,8 +24,8 @@ export function calculateStandardTarget(sex: BiologicalSex, age: number): number
 }
 
 export function calculateWeightAdjustedTarget(weightKg: number): number {
-  if (!weightKg || isNaN(weightKg) || weightKg < 25) return 28.0;
-  const weightBased = Math.round(weightKg * 0.4 * 10) / 10;
+  if (!weightKg || isNaN(weightKg) || weightKg < 25) return 28;
+  const weightBased = Math.ceil(weightKg * 0.4);
   return Math.min(50, Math.max(20, weightBased));
 }
 
